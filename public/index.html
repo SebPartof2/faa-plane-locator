@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FAA Flight Data</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+      background: #f2f2f7;
+      color: #1c1c1e;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* --- Header --- */
+    #header {
+      background: #fff;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      border-bottom: 1px solid #e5e5ea;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    #header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #1c1c1e;
+    }
+
+    .stat {
+      font-size: 13px;
+      color: #8e8e93;
+    }
+    .stat b { color: #1c1c1e; font-weight: 600; }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ff3b30;
+      display: inline-block;
+    }
+    .status-dot.connected { background: #34c759; }
+
+    #controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: auto;
+    }
+
+    #search {
+      background: #f2f2f7;
+      border: none;
+      color: #1c1c1e;
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 15px;
+      width: 260px;
+    }
+    #search::placeholder { color: #8e8e93; }
+    #search:focus { outline: none; box-shadow: 0 0 0 2px #007aff40; }
+
+    .filter-btn {
+      background: #f2f2f7;
+      border: none;
+      color: #8e8e93;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .filter-btn.active { background: #007aff; color: #fff; }
+    .filter-btn:hover:not(.active) { background: #e5e5ea; }
+
+    /* --- Cards Grid --- */
+    #card-container {
+      padding: 16px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 12px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* --- Flight Card --- */
+    .flight-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 16px;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .flight-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .flight-card:active {
+      transform: scale(0.98);
+    }
+
+    /* Row 1: Airline */
+    .card-row-airline {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .airline-logo {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: #8e8e93;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .airline-logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .airline-name {
+      font-size: 17px;
+      font-weight: 600;
+      color: #1c1c1e;
+    }
+
+    .flight-status-pill {
+      margin-left: auto;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .pill-active { background: #34c75920; color: #248a3d; }
+    .pill-proposed { background: #ff9f0a20; color: #c93400; }
+    .pill-completed { background: #8e8e9320; color: #636366; }
+    .pill-other { background: #8e8e9320; color: #636366; }
+
+    /* Row 2-3: Origin / Destination */
+    .card-route {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .route-endpoint {
+      flex: 1;
+    }
+
+    .airport-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1c1c1e;
+      line-height: 1.3;
+    }
+
+    .airport-icao {
+      font-size: 12px;
+      color: #8e8e93;
+      font-weight: 500;
+    }
+
+    .route-arrow {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+      padding: 0 4px;
+    }
+
+    .route-line {
+      width: 40px;
+      height: 1px;
+      background: #d1d1d6;
+      position: relative;
+    }
+
+    .route-line::after {
+      content: '';
+      position: absolute;
+      right: -1px;
+      top: -3px;
+      width: 0;
+      height: 0;
+      border-left: 5px solid #d1d1d6;
+      border-top: 3px solid transparent;
+      border-bottom: 3px solid transparent;
+    }
+
+    .route-plane-icon {
+      color: #007aff;
+      font-size: 14px;
+    }
+
+    /* Row 4: Aircraft Type */
+    .card-aircraft {
+      font-size: 13px;
+      color: #8e8e93;
+      margin-bottom: 10px;
+      font-weight: 500;
+    }
+
+    /* Row 5: Live Data */
+    .card-live-data {
+      display: flex;
+      gap: 16px;
+      padding-top: 10px;
+      border-top: 1px solid #f2f2f7;
+    }
+
+    .live-item {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .live-label {
+      font-size: 10px;
+      color: #8e8e93;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+
+    .live-value {
+      font-size: 14px;
+      font-weight: 600;
+      color: #1c1c1e;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Empty state */
+    #empty-state {
+      text-align: center;
+      padding: 80px 20px;
+      color: #8e8e93;
+      font-size: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div id="header">
+    <h1>Flights</h1>
+    <span class="stat"><span class="status-dot" id="status-dot"></span></span>
+    <span class="stat" id="stat-total">Flights: <b>0</b></span>
+    <span class="stat" id="stat-rate">0 msg/s</span>
+    <div id="controls">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="ACTIVE">Active</button>
+      <button class="filter-btn" data-filter="PROPOSED">Proposed</button>
+      <input type="text" id="search" placeholder="Search flights...">
+    </div>
+  </div>
+
+  <div id="card-container"></div>
+  <div id="empty-state">Connecting to FAA SWIM...</div>
+
+  <script>
+    // --- Lookup stubs (to be replaced with real data) ---
+    let airportLookup = {};
+    let airlineLookup = {};
+
+    // Load lookup data from JSON files
+    Promise.all([
+      fetch('/data/airports.json').then(r => r.json()),
+      fetch('/data/airlines.json').then(r => r.json()),
+    ]).then(([airports, airlines]) => {
+      airportLookup = airports;
+      airlineLookup = airlines;
+      renderCards();
+    });
+
+    function getAirportName(icao) {
+      if (!icao) return null;
+      return airportLookup[icao]?.name || null;
+    }
+
+    function getAirlineInfo(callsign) {
+      if (!callsign) return null;
+      // Extract airline prefix (letters before digits)
+      const match = callsign.match(/^([A-Z]+)/);
+      if (!match) return null;
+      const code = match[1];
+      return airlineLookup[code] || null;
+    }
+
+    function getFlightNumber(callsign) {
+      if (!callsign) return '';
+      const match = callsign.match(/^([A-Z]+)(\d+.*)$/);
+      if (!match) return callsign;
+      const airlineInfo = airlineLookup[match[1]];
+      const shortName = airlineInfo?.short || airlineInfo?.name || match[1];
+      return `${shortName} ${match[2]} (${callsign})`;
+    }
+
+    // --- State ---
+    let flights = new Map();
+    let sortCol = 'callsign';
+    let sortAsc = true;
+    let filterStatus = 'all';
+    let searchQuery = '';
+    let msgCount = 0;
+    let lastMsgCount = 0;
+
+    const container = document.getElementById('card-container');
+    const emptyState = document.getElementById('empty-state');
+    const searchInput = document.getElementById('search');
+
+    // --- Filtering ---
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        filterStatus = btn.dataset.filter;
+        renderCards();
+      });
+    });
+
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value.toUpperCase();
+      renderCards();
+    });
+
+    // --- Helpers ---
+    function getFiltered() {
+      let list = Array.from(flights.values());
+
+      if (filterStatus !== 'all') {
+        list = list.filter(f => f.flightStatus === filterStatus);
+      }
+
+      if (searchQuery) {
+        list = list.filter(f =>
+          (f.callsign || '').includes(searchQuery) ||
+          (f.airline || '').includes(searchQuery) ||
+          (f.origin || '').includes(searchQuery) ||
+          (f.destination || '').includes(searchQuery) ||
+          (f.aircraftType || '').includes(searchQuery) ||
+          (getAirportName(f.origin) || '').toUpperCase().includes(searchQuery) ||
+          (getAirportName(f.destination) || '').toUpperCase().includes(searchQuery) ||
+          (getAirlineInfo(f.callsign)?.name || '').toUpperCase().includes(searchQuery)
+        );
+      }
+
+      list.sort((a, b) => {
+        const va = a.callsign || '';
+        const vb = b.callsign || '';
+        return va.localeCompare(vb);
+      });
+
+      return list;
+    }
+
+    function statusPill(status) {
+      const cls = status === 'ACTIVE' ? 'pill-active'
+        : status === 'PROPOSED' ? 'pill-proposed'
+        : status === 'COMPLETED' ? 'pill-completed' : 'pill-other';
+      return `<span class="flight-status-pill ${cls}">${status || '—'}</span>`;
+    }
+
+    function buildCard(f) {
+      const id = encodeURIComponent(f.fdpsGufi || f.gufi || '');
+      const airlineInfo = getAirlineInfo(f.callsign);
+      const airlineName = airlineInfo?.name || f.airline || '';
+      const flightNum = getFlightNumber(f.callsign);
+      const logoCode = f.callsign ? f.callsign.match(/^[A-Z]+/)?.[0] || '?' : '?';
+
+      const originName = getAirportName(f.origin) || f.origin || '—';
+      const destName = getAirportName(f.destination) || f.destination || '—';
+
+      const alt = f.actualAltitude || f.altitude;
+      const spd = f.groundSpeed || f.airspeed;
+
+      let logoHtml;
+      if (airlineInfo?.logo) {
+        logoHtml = `<img src="${airlineInfo.logo}" alt="${logoCode}">`;
+      } else {
+        logoHtml = logoCode;
+      }
+
+      return `<div class="flight-card" onclick="location.href='/flight.html?id=${id}'">
+        <div class="card-row-airline">
+          <div class="airline-logo">${logoHtml}</div>
+          <span class="airline-name">${flightNum}</span>
+          ${statusPill(f.flightStatus)}
+        </div>
+
+        <div class="card-route">
+          <div class="route-endpoint">
+            <div class="airport-name">${originName}</div>
+            ${f.origin ? `<div class="airport-icao">${f.origin}</div>` : ''}
+          </div>
+          <div class="route-arrow">
+            <div class="route-line"></div>
+          </div>
+          <div class="route-endpoint" style="text-align: right">
+            <div class="airport-name">${destName}</div>
+            ${f.destination ? `<div class="airport-icao">${f.destination}</div>` : ''}
+          </div>
+        </div>
+
+        <div class="card-aircraft">${f.aircraftType || '—'}</div>
+
+        <div class="card-live-data">
+          <div class="live-item">
+            <span class="live-label">Alt</span>
+            <span class="live-value">${alt != null ? Math.round(alt).toLocaleString() + "'" : '—'}</span>
+          </div>
+          <div class="live-item">
+            <span class="live-label">Speed</span>
+            <span class="live-value">${spd != null ? Math.round(spd) + ' kts' : '—'}</span>
+          </div>
+          <div class="live-item">
+            <span class="live-label">Hdg</span>
+            <span class="live-value">${f.heading != null ? Math.round(f.heading) + '\u00B0' : '—'}</span>
+          </div>
+          <div class="live-item">
+            <span class="live-label">Centre</span>
+            <span class="live-value">${f.centre || '—'}</span>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    // --- Render ---
+    function renderCards() {
+      const filtered = getFiltered();
+
+      if (filtered.length === 0) {
+        container.innerHTML = '';
+        emptyState.style.display = 'block';
+        emptyState.textContent = flights.size === 0
+          ? 'Connecting to FAA SWIM...'
+          : 'No flights match your filter.';
+        return;
+      }
+
+      emptyState.style.display = 'none';
+      container.innerHTML = filtered.map(buildCard).join('');
+      document.getElementById('stat-total').innerHTML = `Flights: <b>${filtered.length}</b>`;
+    }
+
+    // --- Stats ---
+    setInterval(() => {
+      const rate = msgCount - lastMsgCount;
+      lastMsgCount = msgCount;
+      document.getElementById('stat-rate').textContent = `${rate} msg/s`;
+    }, 1000);
+
+    // --- WebSocket ---
+    function connect() {
+      const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+      const ws = new WebSocket(`${protocol}://${location.host}/ws`);
+
+      ws.onopen = () => {
+        document.getElementById('status-dot').classList.add('connected');
+      };
+
+      ws.onclose = () => {
+        document.getElementById('status-dot').classList.remove('connected');
+        setTimeout(connect, 3000);
+      };
+
+      ws.onerror = () => ws.close();
+
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.type === 'snapshot') {
+          flights.clear();
+          for (const f of data.flights) {
+            flights.set(f.fdpsGufi || f.gufi, f);
+          }
+          renderCards();
+        } else if (data.type === 'batch') {
+          for (const f of data.flights) {
+            flights.set(f.fdpsGufi || f.gufi, f);
+            msgCount++;
+          }
+          renderCards();
+        }
+      };
+    }
+
+    connect();
+  </script>
+</body>
+</html>

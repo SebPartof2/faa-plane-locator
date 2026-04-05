@@ -1,0 +1,28 @@
+{
+  "name": "faa-plane-locator",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SebPartof2/faa-plane-locator.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/SebPartof2/faa-plane-locator/issues"
+  },
+  "homepage": "https://github.com/SebPartof2/faa-plane-locator#readme",
+  "dependencies": {
+    "dotenv": "^17.4.0",
+    "express": "^5.2.1",
+    "fast-xml-parser": "^5.5.10",
+    "solclientjs": "^10.18.3",
+    "ws": "^8.20.0"
+  }
+}

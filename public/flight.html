@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flight Detail</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Consolas', 'Monaco', monospace;
+      background: #0a0a1a;
+      color: #e0e0e0;
+    }
+
+    #header {
+      background: #111128;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      border-bottom: 1px solid #2a2a4a;
+    }
+
+    #header a {
+      color: #4fc3f7;
+      text-decoration: none;
+      font-size: 14px;
+    }
+    #header a:hover { text-decoration: underline; }
+
+    #callsign {
+      font-size: 24px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    #status-badge {
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-active { background: #1b5e20; color: #66bb6a; }
+    .badge-proposed { background: #f57f17; color: #fff8e1; }
+    .badge-dropped { background: #b71c1c; color: #ef9a9a; }
+    .badge-other { background: #333; color: #888; }
+
+    .updated-label {
+      margin-left: auto;
+      font-size: 12px;
+      color: #555;
+    }
+
+    #content {
+      max-width: 900px;
+      margin: 24px auto;
+      padding: 0 20px;
+    }
+
+    .card {
+      background: #111128;
+      border: 1px solid #2a2a4a;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .card h2 {
+      font-size: 14px;
+      color: #4fc3f7;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    #map {
+      width: 100%;
+      height: 350px;
+      border-radius: 6px;
+      border: 1px solid #2a2a4a;
+    }
+
+    #map-no-position {
+      width: 100%;
+      height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #555;
+      font-size: 13px;
+      border: 1px dashed #2a2a4a;
+      border-radius: 6px;
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px 32px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .field-label {
+      font-size: 11px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .field-value {
+      font-size: 15px;
+      color: #e0e0e0;
+    }
+
+    .field-value.large {
+      font-size: 20px;
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .field-value.mono {
+      font-size: 13px;
+      color: #aaa;
+      word-break: break-all;
+    }
+
+    .route-box {
+      background: #0a0a18;
+      border: 1px solid #222;
+      border-radius: 4px;
+      padding: 12px;
+      font-size: 13px;
+      color: #ccc;
+      line-height: 1.6;
+      word-break: break-all;
+    }
+
+    .dep-arr {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .airport-code {
+      font-size: 32px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .arrow {
+      font-size: 24px;
+      color: #4fc3f7;
+    }
+
+    #not-found {
+      text-align: center;
+      padding: 80px 20px;
+      color: #555;
+      font-size: 16px;
+      display: none;
+    }
+
+    .track-label {
+      background: none;
+      border: none;
+      font-size: 12px;
+      font-weight: bold;
+      color: #4fc3f7;
+      white-space: nowrap;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+    }
+  </style>
+</head>
+<body>
+  <div id="header">
+    <a href="/">&larr; All Flights</a>
+    <span id="callsign">—</span>
+    <span id="status-badge"></span>
+    <span class="updated-label" id="updated-label"></span>
+  </div>
+
+  <div id="content">
+    <div id="not-found">Flight not found. It may have expired or not yet appeared.</div>
+
+    <div id="detail-content" style="display:none">
+      <!-- Map card -->
+      <div class="card">
+        <h2>Position</h2>
+        <div id="map" style="display:none"></div>
+        <div id="map-no-position">Waiting for position data...</div>
+      </div>
+
+      <div class="card">
+        <div class="dep-arr">
+          <span class="airport-code" id="origin">—</span>
+          <span class="arrow">&rarr;</span>
+          <span class="airport-code" id="destination">—</span>
+        </div>
+        <div class="field-grid">
+          <div class="field">
+            <span class="field-label">Aircraft Type</span>
+            <span class="field-value large" id="aircraft-type">—</span>
+          </div>
+          <div class="field">
+            <span class="field-label">Altitude</span>
+            <span class="field-value large" id="altitude">—</span>
+          </div>
+          <div class="field">
+            <span class="field-label">Ground Speed</span>
+            <span class="field-value large" id="ground-speed">—</span>
+          </div>
+          <div class="field">
+            <span class="field-label">Heading</span>
+            <span class="field-value large" id="heading">—</span>
+          </div>
+          <div class="field">
+            <span class="field-label">ARTCC / Sector</span>
+            <span class="field-value" id="centre">—</span>
+          </div>
+          <div class="field">
+            <span class="field-label">Airline</span>
+            <span class="field-value" id="airline">—</span>
+          </div>
+          <div class="field">
+            <span class="field-label">Category</span>
+            <span class="field-value" id="category">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Times card -->
+      <div class="card">
+        <h2>Times</h2>
+        <div class="field-grid">
+          <div class="field">
+            <span class="field-label">Gate Out</span>
+            <span class="field-value" id="gate-out">—</span>
+          </div>
+          <div class="field">
+            <span class="field-label">Wheels Off</span>
+            <span class="field-value" id="wheels-off">—</span>
+          </div>
+          <div class="field">
+            <span class="field-label">ETD</span>
+            <span class="field-value" id="etd">—</span>
+          </div>
+          <div class="field">
+            <span class="field-label">Gate In</span>
+            <span class="field-value" id="gate-in">—</span>
+          </div>
+          <div class="field">
+            <span class="field-label">Wheels On</span>
+            <span class="field-value" id="wheels-on">—</span>
+          </div>
+          <div class="field">
+            <span class="field-label">ETA</span>
+            <span class="field-value" id="eta">—</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Flight Plan</h2>
+        <div class="field-grid" style="margin-bottom: 16px">
+          <div class="field">
+            <span class="field-label">Filed Altitude</span>
+            <span class="field-value" id="filed-altitude">—</span>
+          </div>
+          <div class="field">
+            <span class="field-label">Filed Airspeed</span>
+            <span class="field-value" id="filed-airspeed">—</span>
+          </div>
+          <div class="field">
+            <span class="field-label">Computer ID</span>
+            <span class="field-value" id="computer-id">—</span>
+          </div>
+        </div>
+        <div class="route-box" id="route">—</div>
+      </div>
+
+      <div class="card">
+        <h2>Identifiers</h2>
+        <div class="field-grid">
+          <div class="field">
+            <span class="field-label">GUFI</span>
+            <span class="field-value mono" id="gufi">—</span>
+          </div>
+          <div class="field">
+            <span class="field-label">FDPS GUFI</span>
+            <span class="field-value mono" id="fdps-gufi">—</span>
+          </div>
+          <div class="field">
+            <span class="field-label">Position</span>
+            <span class="field-value mono" id="lat-lon">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const gufi = new URLSearchParams(location.search).get('id');
+    if (!gufi) {
+      document.getElementById('not-found').style.display = 'block';
+    }
+
+    let airportLookup = {};
+    let airlineLookup = {};
+    Promise.all([
+      fetch('/data/airports.json').then(r => r.json()),
+      fetch('/data/airlines.json').then(r => r.json()),
+    ]).then(([airports, airlines]) => {
+      airportLookup = airports;
+      airlineLookup = airlines;
+    });
+
+    function getAirportName(icao) {
+      if (!icao) return null;
+      return airportLookup[icao]?.name || null;
+    }
+
+    // --- Map state ---
+    let map = null;
+    let marker = null;
+    let labelMarker = null;
+    let trailCoords = [];
+    let trailLine = null;
+    let mapInitialized = false;
+
+    function createPlaneIcon(heading) {
+      return L.divIcon({
+        className: '',
+        html: `<svg width="28" height="28" viewBox="0 0 24 24" style="transform: rotate(${heading || 0}deg)">
+          <path d="M12 2 L14 9 L21 12 L14 13 L14 20 L12 18 L10 20 L10 13 L3 12 L10 9 Z"
+                fill="#4fc3f7" stroke="#0d47a1" stroke-width="0.5"/>
+        </svg>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+      });
+    }
+
+    function initMap(lat, lon) {
+      if (mapInitialized) return;
+      document.getElementById('map').style.display = 'block';
+      document.getElementById('map-no-position').style.display = 'none';
+
+      map = L.map('map', { zoomControl: true }).setView([lat, lon], 7);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO',
+        maxZoom: 18,
+      }).addTo(map);
+
+      trailLine = L.polyline([], { color: '#4fc3f7', weight: 2, opacity: 0.5 }).addTo(map);
+      mapInitialized = true;
+    }
+
+    function updateMap(f) {
+      if (f.lat == null || f.lon == null) return;
+
+      initMap(f.lat, f.lon);
+
+      const pos = [f.lat, f.lon];
+
+      // Update or create marker
+      if (marker) {
+        marker.setLatLng(pos);
+        marker.setIcon(createPlaneIcon(f.heading));
+      } else {
+        marker = L.marker(pos, { icon: createPlaneIcon(f.heading) }).addTo(map);
+      }
+
+      // Update or create label
+      const labelIcon = L.divIcon({
+        className: 'track-label',
+        html: `${f.callsign || '?'} ${f.actualAltitude ? Math.round(f.actualAltitude/100) : ''}`,
+        iconSize: [100, 14],
+        iconAnchor: [-10, 7],
+      });
+      if (labelMarker) {
+        labelMarker.setLatLng(pos);
+        labelMarker.setIcon(labelIcon);
+      } else {
+        labelMarker = L.marker(pos, { icon: labelIcon, interactive: false }).addTo(map);
+      }
+
+      // Trail
+      trailCoords.push(pos);
+      if (trailCoords.length > 200) trailCoords.shift();
+      trailLine.setLatLngs(trailCoords);
+
+      // Pan map to follow
+      map.panTo(pos, { animate: true, duration: 0.5 });
+    }
+
+    function populate(f) {
+      document.getElementById('detail-content').style.display = 'block';
+      document.getElementById('not-found').style.display = 'none';
+
+      document.title = `${f.callsign || 'Unknown'} — FAA Flight Data`;
+      document.getElementById('callsign').textContent = f.callsign || '—';
+
+      const badge = document.getElementById('status-badge');
+      badge.textContent = f.flightStatus || '—';
+      badge.className = f.flightStatus === 'ACTIVE' ? 'badge-active'
+        : f.flightStatus === 'PROPOSED' ? 'badge-proposed'
+        : f.flightStatus === 'DROPPED' ? 'badge-dropped' : 'badge-other';
+
+      document.getElementById('origin').textContent = getAirportName(f.origin) || f.origin || '—';
+      document.getElementById('destination').textContent = getAirportName(f.destination) || f.destination || '—';
+      document.getElementById('aircraft-type').textContent = f.aircraftType || '—';
+      document.getElementById('flight-type').textContent = f.flightType || '—';
+
+      // Live position data
+      const alt = f.actualAltitude || f.altitude;
+      document.getElementById('altitude').textContent = alt != null ? alt.toLocaleString() + ' ft' : '—';
+      document.getElementById('ground-speed').textContent = f.groundSpeed != null ? f.groundSpeed + ' kts' : (f.airspeed != null ? f.airspeed + ' kts' : '—');
+      document.getElementById('heading').textContent = f.heading != null ? Math.round(f.heading) + '\u00B0' : '—';
+      document.getElementById('centre').textContent = (f.centre || '—') + (f.sector ? ' / ' + f.sector : '');
+      document.getElementById('airline').textContent = f.airline ? (f.majorAirline && f.majorAirline !== f.airline ? `${f.airline} (${f.majorAirline})` : f.airline) : '—';
+      document.getElementById('category').textContent = [f.aircraftCategory, f.userCategory].filter(Boolean).join(' / ') || '—';
+
+      // Times
+      const fmtTime = (t) => t ? new Date(t).toLocaleTimeString() : '—';
+      document.getElementById('gate-out').textContent = fmtTime(f.gateOut);
+      document.getElementById('wheels-off').textContent = fmtTime(f.wheelsOff);
+      document.getElementById('gate-in').textContent = fmtTime(f.gateIn);
+      document.getElementById('wheels-on').textContent = fmtTime(f.wheelsOn);
+      document.getElementById('etd').textContent = f.etd ? `${fmtTime(f.etd)} (${f.etdType || '?'})` : '—';
+      document.getElementById('eta').textContent = f.eta ? `${fmtTime(f.eta)} (${f.etaType || '?'})` : '—';
+
+      // Filed data
+      document.getElementById('filed-altitude').textContent = f.altitude != null ? f.altitude.toLocaleString() + ' ft' : '—';
+      document.getElementById('filed-airspeed').textContent = f.airspeed != null ? f.airspeed + ' kts' : '—';
+      document.getElementById('computer-id').textContent = f.computerId || '—';
+      document.getElementById('route').textContent = f.route || '—';
+      document.getElementById('gufi').textContent = f.gufi || '—';
+      document.getElementById('fdps-gufi').textContent = f.fdpsGufi || '—';
+      document.getElementById('lat-lon').textContent = f.lat != null ? `${f.lat.toFixed(4)}, ${f.lon.toFixed(4)}` : '—';
+
+      if (f.timestamp) {
+        const d = new Date(f.timestamp);
+        document.getElementById('updated-label').textContent = 'Updated: ' + d.toLocaleTimeString();
+      }
+
+      updateMap(f);
+    }
+
+    // --- WebSocket for live updates ---
+    function connect() {
+      const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+      const ws = new WebSocket(`${protocol}://${location.host}/ws`);
+
+      ws.onclose = () => setTimeout(connect, 3000);
+      ws.onerror = () => ws.close();
+
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        const flights = data.flights || [];
+        for (const f of flights) {
+          if ((f.fdpsGufi || f.gufi) === gufi) {
+            populate(f);
+            return;
+          }
+        }
+      };
+    }
+
+    if (gufi) connect();
+  </script>
+</body>
+</html>

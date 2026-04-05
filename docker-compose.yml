@@ -1,0 +1,11 @@
+services:
+  app:
+    image: ghcr.io/sebpartof2/faa-plane-locator:latest
+    build: .
+    env_file: .env
+    ports:
+      - "8443:8443"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    mem_limit: 512m
