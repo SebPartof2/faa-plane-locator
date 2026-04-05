@@ -284,6 +284,27 @@
       font-variant-numeric: tabular-nums;
     }
 
+    .card-live-data {
+      position: relative;
+    }
+
+    .tfms-badge {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      font-size: 12px;
+      font-weight: 700;
+      width: 20px;
+      height: 20px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .tfms-badge.has-tfms { color: #34c759; }
+    .tfms-badge.no-tfms { color: #ff3b30; opacity: 0.4; }
+
     /* Empty state */
     #empty-state {
       text-align: center;
@@ -563,7 +584,10 @@
           </div>
           <div class="live-item">
             <span class="live-label">Source</span>
-            <span class="live-value">${(f.dataSources && f.dataSources.length) ? f.dataSources.join(', ') : '—'}</span>
+            <span class="live-value">${(f.dataSources && f.dataSources.length) ? f.dataSources.filter(s => s !== 'TFMS').join(', ') || '—' : '—'}</span>
+          </div>
+          <div class="tfms-badge ${f.dataSources && f.dataSources.includes('TFMS') ? 'has-tfms' : 'no-tfms'}">
+            ${f.dataSources && f.dataSources.includes('TFMS') ? '&#10003;' : '&#10007;'}
           </div>
         </div>
       </div>`;
