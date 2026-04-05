@@ -427,13 +427,17 @@
     }
 
     function updateMap(f) {
-      if (f.lat == null || f.lon == null) return;
+      // Use FDPS position, fall back to SMES surface position
+      const mapLat = f.lat ?? f.surfaceLat;
+      const mapLon = f.lon ?? f.surfaceLon;
+      const mapHeading = f.heading ?? f.surfaceHeading;
+      if (mapLat == null || mapLon == null) return;
 
       document.getElementById('map').style.display = 'block';
       document.getElementById('map-placeholder').style.display = 'none';
 
       if (!map) {
-        map = L.map('map').setView([f.lat, f.lon], 7);
+        map = L.map('map').setView([mapLat, mapLon], f.surfaceLat != null ? 15 : 7);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
           attribution: '&copy; OpenStreetMap &copy; CARTO',
           maxZoom: 18,
@@ -441,13 +445,13 @@
         trailLine = L.polyline([], { color: '#007aff', weight: 2, opacity: 0.4 }).addTo(map);
       }
 
-      const pos = [f.lat, f.lon];
+      const pos = [mapLat, mapLon];
 
       if (marker) {
         marker.setLatLng(pos);
-        marker.setIcon(createPlaneIcon(f.heading));
+        marker.setIcon(createPlaneIcon(mapHeading));
       } else {
-        marker = L.marker(pos, { icon: createPlaneIcon(f.heading) }).addTo(map);
+        marker = L.marker(pos, { icon: createPlaneIcon(mapHeading) }).addTo(map);
       }
 
       const alt = f.actualAltitude || f.altitude;
