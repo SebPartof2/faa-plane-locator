@@ -55,6 +55,18 @@
       margin-left: auto;
     }
 
+    #airline-filter {
+      background: #f2f2f7;
+      border: none;
+      color: #1c1c1e;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    #airline-filter:focus { outline: none; box-shadow: 0 0 0 2px #007aff40; }
+
     #search {
       background: #f2f2f7;
       border: none;
@@ -269,6 +281,9 @@
       <button class="filter-btn" data-filter="PROPOSED">Proposed</button>
       <button class="filter-btn" data-filter="PLANNED">Planned</button>
       <button class="filter-btn" data-filter="DROPPED">Dropped</button>
+      <select id="airline-filter">
+        <option value="">All Airlines</option>
+      </select>
       <input type="text" id="search" placeholder="Search flights...">
     </div>
   </div>
@@ -288,7 +303,20 @@
     ]).then(([airports, airlines]) => {
       airportLookup = airports;
       airlineLookup = airlines;
-      renderCards();
+
+      // Populate airline dropdown
+      const select = document.getElementById('airline-filter');
+      const sorted = Object.entries(airlines)
+        .map(([code, info]) => ({ code, name: info.short || info.name }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+      for (const { code, name } of sorted) {
+        const opt = document.createElement('option');
+        opt.value = code;
+        opt.textContent = name;
+        select.appendChild(opt);
+      }
+
+      fetchFlights();
     });
 
     function getAirportName(icao) {
@@ -323,6 +351,7 @@
     // --- State ---
     let currentFlights = [];
     let filterStatus = 'ACTIVE';
+    let airlineFilter = '';
     let searchQuery = '';
     let currentPage = 0;
     let totalPages = 0;
@@ -343,6 +372,12 @@
       });
     });
 
+    document.getElementById('airline-filter').addEventListener('change', (e) => {
+      airlineFilter = e.target.value;
+      currentPage = 0;
+      fetchFlights();
+    });
+
     let searchTimeout;
     searchInput.addEventListener('input', (e) => {
       clearTimeout(searchTimeout);
@@ -359,6 +394,7 @@
         const params = new URLSearchParams({
           status: filterStatus,
           search: searchQuery,
+          airline: airlineFilter,
           page: currentPage,
           limit: 50,
         });

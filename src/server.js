@@ -129,6 +129,7 @@ tfmsClient.on('message', (payload) => {
 app.get('/api/flights', (req, res) => {
   const status = req.query.status || 'ACTIVE';
   const search = (req.query.search || '').toUpperCase();
+  const airline = req.query.airline || '';
   const page = parseInt(req.query.page) || 0;
   const limit = Math.min(parseInt(req.query.limit) || 50, 100);
 
@@ -137,6 +138,14 @@ app.get('/api/flights', (req, res) => {
   // Filter by status
   if (status !== 'all') {
     flights = flights.filter(f => f.flightStatus === status);
+  }
+
+  // Filter by airline code
+  if (airline) {
+    flights = flights.filter(f => {
+      const match = (f.callsign || '').match(/^([A-Z]+)/);
+      return match && match[1] === airline;
+    });
   }
 
   // Search
