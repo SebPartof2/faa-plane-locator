@@ -154,6 +154,8 @@
     }
     .pill-active { background: #34c75920; color: #248a3d; }
     .pill-proposed { background: #ff9f0a20; color: #c93400; }
+    .pill-planned { background: #007aff20; color: #0056cc; }
+    .pill-dropped { background: #ff3b3020; color: #d70015; }
     .pill-completed { background: #8e8e9320; color: #636366; }
     .pill-other { background: #8e8e9320; color: #636366; }
 
@@ -268,9 +270,11 @@
     <span class="stat" id="stat-total">Flights: <b>0</b></span>
     <span class="stat" id="stat-rate">0 msg/s</span>
     <div id="controls">
-      <button class="filter-btn active" data-filter="all">All</button>
-      <button class="filter-btn" data-filter="ACTIVE">Active</button>
+      <button class="filter-btn" data-filter="all">All</button>
+      <button class="filter-btn active" data-filter="ACTIVE">Active</button>
       <button class="filter-btn" data-filter="PROPOSED">Proposed</button>
+      <button class="filter-btn" data-filter="PLANNED">Planned</button>
+      <button class="filter-btn" data-filter="DROPPED">Dropped</button>
       <input type="text" id="search" placeholder="Search flights...">
     </div>
   </div>
@@ -326,7 +330,7 @@
     let flights = new Map();
     let sortCol = 'callsign';
     let sortAsc = true;
-    let filterStatus = 'all';
+    let filterStatus = 'ACTIVE';
     let searchQuery = '';
     let msgCount = 0;
     let lastMsgCount = 0;
@@ -383,6 +387,8 @@
     function statusPill(status) {
       const cls = status === 'ACTIVE' ? 'pill-active'
         : status === 'PROPOSED' ? 'pill-proposed'
+        : status === 'PLANNED' ? 'pill-planned'
+        : status === 'DROPPED' ? 'pill-dropped'
         : status === 'COMPLETED' ? 'pill-completed' : 'pill-other';
       return `<span class="flight-status-pill ${cls}">${status || '—'}</span>`;
     }
