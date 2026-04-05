@@ -550,11 +550,16 @@
       document.getElementById('dest-name').textContent = getAirportName(f.destination) || f.destination || '—';
       document.getElementById('dest-icao').textContent = f.destination || '';
 
-      // ETD/ETA
-      document.getElementById('dep-time').innerHTML = f.etd
-        ? `<div class="time-box${f.etdType !== 'ACTUAL' ? ' estimated' : ''}"><span class="time-type">${f.etdType === 'ACTUAL' ? 'DEP ' : 'ETD '}</span>${fmtTime(f.etd)}</div>` : '';
-      document.getElementById('arr-time').innerHTML = f.eta
-        ? `<div class="time-box${f.etaType !== 'ACTUAL' ? ' estimated' : ''}"><span class="time-type">${f.etaType === 'ACTUAL' ? 'ARR ' : 'ETA '}</span>${fmtTime(f.eta)}</div>` : '';
+      // Departure/Arrival times — prefer airline out/in, fall back to ETD/ETA
+      const depTime = f.airlineOut || f.etd;
+      const depIsActual = !!f.airlineOut || f.etdType === 'ACTUAL';
+      const arrTime = f.airlineIn || f.eta;
+      const arrIsActual = !!f.airlineIn || f.etaType === 'ACTUAL';
+
+      document.getElementById('dep-time').innerHTML = depTime
+        ? `<div class="time-box${!depIsActual ? ' estimated' : ''}"><span class="time-type">${depIsActual ? 'DEP ' : 'ETD '}</span>${fmtTime(depTime)}</div>` : '';
+      document.getElementById('arr-time').innerHTML = arrTime
+        ? `<div class="time-box${!arrIsActual ? ' estimated' : ''}"><span class="time-type">${arrIsActual ? 'ARR ' : 'ETA '}</span>${fmtTime(arrTime)}</div>` : '';
 
       // Live data (fall back to surface data)
       const alt = f.actualAltitude || f.altitude;
@@ -574,9 +579,9 @@
       document.getElementById('centre').innerHTML = (f.centre || '—') + srcTag('centre');
       document.getElementById('sector').innerHTML = (f.sector || '—') + srcTag('sector');
 
-      // Delay
-      const depDelay = getDelay(f.scheduledDep, f.etd);
-      const arrDelay = getDelay(f.scheduledArr, f.eta);
+      // Delay — use airline out/in vs scheduled
+      const depDelay = getDelay(f.scheduledDep, f.airlineOut || f.etd);
+      const arrDelay = getDelay(f.scheduledArr, f.airlineIn || f.eta);
       const delay = arrDelay !== null ? arrDelay : depDelay;
       if (delay !== null) {
         if (delay <= 0) {
@@ -593,8 +598,9 @@
 
       // Times
       const times = [
-        ['Gate Out', f.gateOut], ['Wheels Off', f.wheelsOff],
-        ['Wheels On', f.wheelsOn], ['Gate In', f.gateIn],
+        ['Airline Out', f.airlineOut], ['Gate Out', f.gateOut],
+        ['Wheels Off', f.wheelsOff], ['Wheels On', f.wheelsOn],
+        ['Gate In', f.gateIn], ['Airline In', f.airlineIn],
         ['Scheduled Dep', f.scheduledDep], ['Scheduled Arr', f.scheduledArr],
       ].filter(([, v]) => v);
 

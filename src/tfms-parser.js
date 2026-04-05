@@ -62,6 +62,9 @@ function parseFlightMessage(msg) {
     gateIn: flightTimes['@_gateArrival'] || flightTimes['@_airlineInTime'] || null,
     wheelsOff: flightTimes['@_runwayDeparture'] || flightTimes['@_airlineOffTime'] || null,
     wheelsOn: flightTimes['@_runwayArrival'] || flightTimes['@_airlineOnTime'] || null,
+    // Airline out/in (best source for departure/arrival display)
+    airlineOut: flightTimes['@_airlineOutTime'] || null,
+    airlineIn: flightTimes['@_airlineInTime'] || null,
     // ETD/ETA
     etd: etd['@_timeValue'] || null,
     eta: eta['@_timeValue'] || null,
