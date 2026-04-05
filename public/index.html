@@ -357,46 +357,9 @@
       color: #8e8e93;
       font-size: 15px;
     }
-    /* Flow banner */
-    #flow-banner {
-      background: #fff;
-      border-bottom: 1px solid #e5e5ea;
-      padding: 0 20px;
-      display: none;
-      overflow-x: auto;
-    }
-
-    .flow-items {
-      display: flex;
-      gap: 8px;
-      padding: 8px 0;
-    }
-
-    .flow-chip {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 12px;
-      border-radius: 8px;
-      font-size: 12px;
-      font-weight: 600;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-
-    .flow-chip.gs { background: #ff3b3020; color: #d70015; }
-    .flow-chip.gdp { background: #ff9f0a20; color: #c93400; }
-    .flow-chip.mit { background: #ff9f0a20; color: #c93400; }
-    .flow-chip.apreq { background: #007aff15; color: #007aff; }
-    .flow-chip.tbm { background: #af52de20; color: #8944ab; }
-    .flow-chip.default { background: #f2f2f7; color: #636366; }
-
-    .flow-chip .flow-airport { font-weight: 700; }
-    .flow-chip .flow-reason { font-weight: 400; color: #8e8e93; margin-left: 4px; }
   </style>
 </head>
 <body>
-  <div id="flow-banner"><div class="flow-items" id="flow-items"></div></div>
   <div id="header">
     <h1>Flights</h1>
     <span class="stat"><span class="status-dot" id="status-dot"></span></span>
@@ -743,40 +706,6 @@
         window.scrollTo(0, 0);
       }
     }
-
-    // --- Flow restrictions ---
-    async function loadFlow() {
-      try {
-        const res = await fetch('/api/flow');
-        const restrictions = await res.json();
-        const banner = document.getElementById('flow-banner');
-        const items = document.getElementById('flow-items');
-
-        if (restrictions.length === 0) {
-          banner.style.display = 'none';
-          return;
-        }
-
-        banner.style.display = 'block';
-        const catClass = { GS: 'gs', GDP: 'gdp', MIT: 'mit', APREQ: 'apreq', TBM: 'tbm' };
-        const catLabel = { GS: 'Ground Stop', GDP: 'Ground Delay', MIT: 'Miles-in-Trail', APREQ: 'Approval Req', TBM: 'Time-Based Metering' };
-
-        items.innerHTML = restrictions.map(r => {
-          const cls = catClass[r.category] || 'default';
-          const label = catLabel[r.category] || r.category;
-          const airport = r.airport || '?';
-          const reason = r.reason ? r.reason.split(':').pop().trim() : '';
-          return `<div class="flow-chip ${cls}">
-            <span class="flow-airport">${airport}</span>
-            ${label}${r.mitValue ? ' ' + r.mitValue + 'nm' : ''}
-            ${reason ? `<span class="flow-reason">${reason}</span>` : ''}
-          </div>`;
-        }).join('');
-      } catch (e) { /* ignore */ }
-    }
-
-    loadFlow();
-    setInterval(loadFlow, 30000);
 
     // --- Auto-refresh every 5s ---
     setInterval(fetchFlights, 5000);

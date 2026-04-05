@@ -282,6 +282,22 @@
     .debug-src.tfms { background: #34c759; }
     .debug-src.smes { background: #ff9f0a; }
 
+    .advisory {
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+    .advisory:last-child { margin-bottom: 0; }
+    .advisory.gs { background: #ff3b3015; border-left: 3px solid #ff3b30; }
+    .advisory.gdp { background: #ff9f0a15; border-left: 3px solid #ff9f0a; }
+    .advisory.mit { background: #ff9f0a15; border-left: 3px solid #ff9f0a; }
+    .advisory.apreq { background: #007aff10; border-left: 3px solid #007aff; }
+    .advisory.tbm { background: #af52de15; border-left: 3px solid #af52de; }
+    .advisory.default { background: #f2f2f7; border-left: 3px solid #8e8e93; }
+    .advisory-title { font-weight: 700; margin-bottom: 2px; }
+    .advisory-detail { color: #636366; font-size: 12px; }
+
     #not-found {
       text-align: center;
       padding: 80px 20px;
@@ -378,6 +394,12 @@
       <div class="card" id="route-card" style="display:none">
         <h2>Route</h2>
         <div class="route-string" id="route-string"></div>
+      </div>
+
+      <!-- Advisories -->
+      <div class="card" id="advisories-card" style="display:none">
+        <h2>Advisories</h2>
+        <div id="advisories"></div>
       </div>
 
       <!-- Sources & IDs -->
@@ -624,6 +646,49 @@
       document.getElementById('computer-id').textContent = f.computerId || '—';
 
       updateMap(f);
+      loadAdvisories(f);
+    }
+
+    // --- Advisories ---
+    const catClass = { GS: 'gs', GDP: 'gdp', MIT: 'mit', APREQ: 'apreq', TBM: 'tbm' };
+    const catLabel = { GS: 'Ground Stop', GDP: 'Ground Delay', MIT: 'Miles-in-Trail', APREQ: 'Approval Required', TBM: 'Time-Based Metering' };
+
+    async function loadAdvisories(f) {
+      try {
+        // Fetch advisories for both origin and destination
+        const airports = [f.origin, f.destination].filter(Boolean);
+        const all = [];
+        for (const apt of airports) {
+          const res = await fetch(`/api/flow?airport=${apt}`);
+          const data = await res.json();
+          for (const r of data) {
+            r._forAirport = apt;
+            all.push(r);
+          }
+        }
+
+        const card = document.getElementById('advisories-card');
+        const container = document.getElementById('advisories');
+
+        if (all.length === 0) {
+          card.style.display = 'none';
+          return;
+        }
+
+        card.style.display = 'block';
+        container.innerHTML = all.map(r => {
+          const cls = catClass[r.category] || 'default';
+          const label = catLabel[r.category] || r.category;
+          const reason = r.reason ? r.reason.split(':').pop().trim() : '';
+          const time = r.startTime && r.stopTime
+            ? `${fmtTime(r.startTime)} — ${fmtTime(r.stopTime)}`
+            : '';
+          return `<div class="advisory ${cls}">
+            <div class="advisory-title">${r._forAirport} — ${label}${r.mitValue ? ' ' + r.mitValue + 'nm' : ''}</div>
+            <div class="advisory-detail">${reason}${time ? ' · ' + time : ''}${r.qualifier ? '<br>' + r.qualifier : ''}</div>
+          </div>`;
+        }).join('');
+      } catch (e) { /* ignore */ }
     }
 
     // --- Poll ---
