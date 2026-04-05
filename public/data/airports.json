@@ -83,5 +83,10 @@
   "KCOS": { "name": "Colorado Springs, CO" },
   "KSYR": { "name": "Syracuse, NY" },
   "MHLM": { "name": "San Pedro Sula, Honduras" },
-  "SCEL": { "name": "Santiago, Chile" }
+  "SCEL": { "name": "Santiago, Chile" },
+  "SKBO": { "name": "Bogota, Colombia" },
+  "KRAP": { "name": "Rapid City, SD" },
+  "MWCR": { "name": "Grand Cayman, Cayman Islands" },
+  "EDDM": { "name": "Munich, Germany" },
+  "PHOG": { "name": "Kahului/Maui, HI" }
 }

@@ -37,5 +37,7 @@
   "POE": { "name": "Porter Airlines", "short": "Porter" },
   "MXY": { "name": "Breeze Airways", "short": "Breeze" },
   "ERU": { "name": "Embry-Riddle Aeronautical University", "short": "Embry-Riddle" },
-  "UCA": { "name": "CommutAir", "short": "CommutAir" }
+  "UCA": { "name": "CommutAir", "short": "CommutAir" },
+  "DAE": { "name": "DHL Aero Expreso", "short": "DHL" },
+  "OCN": { "name": "Oceanair", "short": "Oceanair" }
 }
