@@ -112,6 +112,8 @@
       padding: 16px;
       transition: box-shadow 0.15s;
       box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      display: flex;
+      flex-direction: column;
     }
     .flight-card:hover {
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
@@ -261,6 +263,8 @@
       gap: 16px;
       padding-top: 10px;
       border-top: 1px solid #f2f2f7;
+      margin-top: auto;
+      position: relative;
     }
 
     .live-item {
@@ -282,10 +286,6 @@
       font-weight: 600;
       color: #1c1c1e;
       font-variant-numeric: tabular-nums;
-    }
-
-    .card-live-data {
-      position: relative;
     }
 
     .tfms-badge {
