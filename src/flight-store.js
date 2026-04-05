@@ -90,11 +90,15 @@ class FlightStore {
       const terminalStatuses = new Set(['COMPLETED', 'DROPPED']);
       const existingIsTerminal = terminalStatuses.has(existing.flightStatus);
 
+      if (!existing._fieldSources) existing._fieldSources = {};
+      const src = plan.dataSource || 'unknown';
+
       for (const [k, v] of Object.entries(plan)) {
-        if (k === 'dataSources') continue; // managed above
+        if (k === 'dataSources' || k === '_fieldSources') continue;
         if (k === 'flightStatus' && existingIsTerminal && !terminalStatuses.has(v)) continue;
         if (v !== null && v !== undefined) {
           existing[k] = v;
+          existing._fieldSources[k] = src;
         }
       }
       existing.lastUpdated = Date.now();
@@ -102,9 +106,15 @@ class FlightStore {
       return existing;
     }
 
-    // New flight — init dataSources set
+    // New flight — init dataSources set and field sources
     if (plan.dataSource) {
       plan.dataSources = new Set([plan.dataSource]);
+      plan._fieldSources = {};
+      for (const [k, v] of Object.entries(plan)) {
+        if (v !== null && v !== undefined && k !== 'dataSources' && k !== '_fieldSources') {
+          plan._fieldSources[k] = plan.dataSource;
+        }
+      }
     }
 
     plan.lastUpdated = Date.now();
@@ -143,9 +153,15 @@ class FlightStore {
     const now = Date.now();
     const terminal = new Set(['COMPLETED', 'DROPPED']);
     for (const [key, flight] of this.flights) {
+      const isTerminal = terminal.has(flight.flightStatus);
+
+      // Keep if still being tracked on surface
+      if (isTerminal && flight.surfaceLastUpdated && (now - flight.surfaceLastUpdated < COMPLETED_MS)) {
+        continue;
+      }
+
       const age = now - flight.lastUpdated;
-      // Remove completed/dropped after 20 min, everything else after 4 hours
-      const maxAge = terminal.has(flight.flightStatus) ? COMPLETED_MS : STALE_MS;
+      const maxAge = isTerminal ? COMPLETED_MS : STALE_MS;
       if (age > maxAge) {
         if (flight.callsign) this.callsignIndex.delete(flight.callsign);
         this.flights.delete(key);

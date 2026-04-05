@@ -268,6 +268,20 @@
     .time-item-label { font-size: 13px; color: #8e8e93; }
     .time-item-value { font-size: 13px; font-weight: 600; }
 
+    .debug-src {
+      font-size: 9px;
+      color: #fff;
+      background: #8e8e93;
+      padding: 1px 5px;
+      border-radius: 3px;
+      margin-left: 4px;
+      font-weight: 600;
+      vertical-align: middle;
+    }
+    .debug-src.eram { background: #007aff; }
+    .debug-src.tfms { background: #34c759; }
+    .debug-src.smes { background: #ff9f0a; }
+
     #not-found {
       text-align: center;
       padding: 80px 20px;
@@ -386,7 +400,9 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
-    const gufi = new URLSearchParams(location.search).get('id');
+    const params = new URLSearchParams(location.search);
+    const gufi = params.get('id');
+    const debugMode = params.get('debug') === 'true';
 
     let airportLookup = {};
     let airlineLookup = {};
@@ -399,6 +415,15 @@
 
     function getAirlineInfo(code) {
       return airlineLookup[code] || null;
+    }
+
+    let fieldSources = {};
+
+    function srcTag(field) {
+      if (!debugMode || !fieldSources[field]) return '';
+      const s = fieldSources[field];
+      const cls = s.startsWith('ERAM') ? 'eram' : s.startsWith('TFMS') ? 'tfms' : s.startsWith('SMES') ? 'smes' : '';
+      return `<span class="debug-src ${cls}">${s}</span>`;
     }
 
     function fmtTime(iso) {
@@ -480,6 +505,7 @@
     function populate(f) {
       document.getElementById('detail').style.display = 'block';
       document.getElementById('not-found').style.display = 'none';
+      fieldSources = f._fieldSources || {};
 
       // Header
       const callMatch = (f.callsign || '').match(/^([A-Z]+)(\d+.*)$/);
@@ -532,18 +558,21 @@
 
       // Live data (fall back to surface data)
       const alt = f.actualAltitude || f.altitude;
+      const altField = f.actualAltitude ? 'actualAltitude' : 'altitude';
       const spd = f.groundSpeed || f.airspeed || f.surfaceSpeed;
+      const spdField = f.groundSpeed ? 'groundSpeed' : f.airspeed ? 'airspeed' : 'surfaceSpeed';
       const hdg = f.heading ?? f.surfaceHeading;
-      document.getElementById('altitude').textContent = alt != null ? Math.round(alt).toLocaleString() + "'" : '—';
-      document.getElementById('speed').textContent = spd != null ? Math.round(spd) + ' kts' : '—';
-      document.getElementById('heading').textContent = hdg != null ? Math.round(hdg) + '\u00B0' : '—';
+      const hdgField = f.heading != null ? 'heading' : 'surfaceHeading';
+      document.getElementById('altitude').innerHTML = (alt != null ? Math.round(alt).toLocaleString() + "'" : '—') + srcTag(altField);
+      document.getElementById('speed').innerHTML = (spd != null ? Math.round(spd) + ' kts' : '—') + srcTag(spdField);
+      document.getElementById('heading').innerHTML = (hdg != null ? Math.round(hdg) + '\u00B0' : '—') + srcTag(hdgField);
 
       // Flight info
-      document.getElementById('aircraft-type').textContent = f.aircraftType || '—';
-      document.getElementById('airline').textContent = info?.name || f.airline || '—';
-      document.getElementById('category').textContent = [f.aircraftCategory, f.userCategory].filter(Boolean).join(' / ') || '—';
-      document.getElementById('centre').textContent = f.centre || '—';
-      document.getElementById('sector').textContent = f.sector || '—';
+      document.getElementById('aircraft-type').innerHTML = (f.aircraftType || '—') + srcTag('aircraftType');
+      document.getElementById('airline').innerHTML = (info?.name || f.airline || '—') + srcTag('airline');
+      document.getElementById('category').innerHTML = ([f.aircraftCategory, f.userCategory].filter(Boolean).join(' / ') || '—') + srcTag('aircraftCategory');
+      document.getElementById('centre').innerHTML = (f.centre || '—') + srcTag('centre');
+      document.getElementById('sector').innerHTML = (f.sector || '—') + srcTag('sector');
 
       // Delay
       const depDelay = getDelay(f.scheduledDep, f.etd);
@@ -600,7 +629,7 @@
     // --- Poll ---
     async function refresh() {
       try {
-        const res = await fetch(`/api/flights/${encodeURIComponent(gufi)}`);
+        const res = await fetch(`/api/flights/${encodeURIComponent(gufi)}${debugMode ? '?debug=true' : ''}`);
         if (res.status === 404) {
           document.getElementById('not-found').style.display = 'block';
           return;

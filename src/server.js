@@ -156,6 +156,7 @@ smesClient.on('message', (payload) => {
         surfaceHeading: track.heading,
         surfaceEvent: track.event || null,
         surfaceRunway: track.runway || null,
+        surfaceLastUpdated: Date.now(),
         dataSource: track.airport ? `SMES ${track.airport}` : 'SMES',
       });
       smesMsgCount++;
@@ -203,6 +204,11 @@ app.get('/api/flights/:gufi', (req, res) => {
   const flights = flightStore.getAll();
   const flight = flights.find(f => (f.fdpsGufi || f.gufi) === req.params.gufi);
   if (!flight) return res.status(404).json({ error: 'Flight not found' });
+  // Strip _fieldSources unless debug mode
+  if (req.query.debug !== 'true') {
+    const { _fieldSources, ...clean } = flight;
+    return res.json(clean);
+  }
   res.json(flight);
 });
 
