@@ -1,4 +1,5 @@
 require('dotenv').config();
+const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const http = require('http');
@@ -130,43 +131,68 @@ app.get('/codes', (req, res) => {
 });
 
 app.get('/api/codes/missing', (req, res) => {
+  // Load current lookup files
+  let airportLookup = {}, airlineLookup = {};
+  try {
+    airportLookup = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'public', 'data', 'airports.json'), 'utf-8'));
+    airlineLookup = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'public', 'data', 'airlines.json'), 'utf-8'));
+  } catch (e) { /* ignore */ }
+
   const flights = flightStore.getAll();
-  const missing = [];
+
+  // Count frequency of each missing code
+  const missingAirlines = {};  // code -> count
+  const missingAirports = {};  // code -> count
+  const flightsByCode = {};    // code -> sample flight
 
   for (const f of flights) {
-    if (!f.callsign) continue;
+    if (!f.callsign || /^N\d/.test(f.callsign)) continue;
 
-    const airlineMatch = f.callsign.match(/^([A-Z]+)\d/);
+    const airlineMatch = f.callsign.match(/^([A-Z]{2,})\d/);
     const airlineCode = airlineMatch ? airlineMatch[1] : null;
-    const isNNumber = /^N\d/.test(f.callsign);
 
-    // Skip N-numbers
-    if (isNNumber) continue;
-
-    const needs = [];
-    if (airlineCode && airlineCode.length >= 2) needs.push('airline');
-    if (f.origin) needs.push('origin');
-    if (f.destination) needs.push('destination');
-
-    if (needs.length > 0) {
-      missing.push({
-        callsign: f.callsign,
-        airlineCode: airlineCode || null,
-        origin: f.origin || null,
-        destination: f.destination || null,
-        aircraftType: f.aircraftType || null,
-        flightStatus: f.flightStatus || null,
-      });
+    if (airlineCode && !airlineLookup[airlineCode]) {
+      missingAirlines[airlineCode] = (missingAirlines[airlineCode] || 0) + 1;
+      if (!flightsByCode[airlineCode]) flightsByCode[airlineCode] = f;
+    }
+    if (f.origin && !airportLookup[f.origin]) {
+      missingAirports[f.origin] = (missingAirports[f.origin] || 0) + 1;
+      if (!flightsByCode[f.origin]) flightsByCode[f.origin] = f;
+    }
+    if (f.destination && !airportLookup[f.destination]) {
+      missingAirports[f.destination] = (missingAirports[f.destination] || 0) + 1;
+      if (!flightsByCode[f.destination]) flightsByCode[f.destination] = f;
     }
   }
 
-  // Pick a random one
-  if (missing.length === 0) {
+  // Prioritize: airlines first (sorted by frequency), then airports (sorted by frequency)
+  const sortedAirlines = Object.entries(missingAirlines).sort((a, b) => b[1] - a[1]);
+  const sortedAirports = Object.entries(missingAirports).sort((a, b) => b[1] - a[1]);
+  const topCode = sortedAirlines[0]?.[0] || sortedAirports[0]?.[0];
+
+  if (!topCode) {
     return res.json({ message: 'All codes covered!' });
   }
 
-  const pick = missing[Math.floor(Math.random() * missing.length)];
-  res.json(pick);
+  const sample = flightsByCode[topCode];
+  res.json({
+    callsign: sample.callsign,
+    airlineCode: sample.callsign.match(/^([A-Z]+)/)?.[1] || null,
+    origin: sample.origin || null,
+    destination: sample.destination || null,
+    aircraftType: sample.aircraftType || null,
+    flightStatus: sample.flightStatus || null,
+    actualAltitude: sample.actualAltitude || null,
+    altitude: sample.altitude || null,
+    groundSpeed: sample.groundSpeed || null,
+    airspeed: sample.airspeed || null,
+    heading: sample.heading || null,
+    centre: sample.centre || null,
+    _missingCode: topCode,
+    _frequency: sortedAirlines[0]?.[0] === topCode ? sortedAirlines[0][1] : sortedAirports[0][1],
+    _totalMissingAirlines: sortedAirlines.length,
+    _totalMissingAirports: sortedAirports.length,
+  });
 });
 
 // --- Health check endpoint ---
