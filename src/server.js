@@ -150,17 +150,35 @@ const smesClient = new SolaceClient({
 
 let smesMsgCount = 0;
 
+// Maps airport:trackId -> { gufi, callsign } from identified SMES reports
+const smesTrackIndex = new Map();
+
 smesClient.on('message', (payload) => {
   try {
     const tracks = parseSmesMessage(payload);
     if (!tracks) return;
     for (const track of tracks) {
-      // Only use tracks we can match — need GUFI or callsign
-      if (!track.gufi && !track.callsign) continue;
+      const trackKey = `${track.airport}:${track.trackId}`;
+
+      // Learn identity from reports that have it
+      if (track.gufi || track.callsign) {
+        smesTrackIndex.set(trackKey, {
+          gufi: track.gufi || smesTrackIndex.get(trackKey)?.gufi,
+          callsign: track.callsign || smesTrackIndex.get(trackKey)?.callsign,
+        });
+      }
+
+      // Resolve identity: direct fields or from index
+      const identity = smesTrackIndex.get(trackKey);
+      const gufi = track.gufi || identity?.gufi;
+      const callsign = track.callsign || identity?.callsign;
+
+      // Need at least one identifier to match
+      if (!gufi && !callsign) continue;
 
       ingestFlight({
-        fdpsGufi: track.gufi,
-        callsign: track.callsign || null,
+        fdpsGufi: gufi || undefined,
+        callsign: callsign || null,
         aircraftType: track.aircraftType || null,
         surfaceAirport: track.airport || null,
         surfaceLat: track.lat,
@@ -178,6 +196,9 @@ smesClient.on('message', (payload) => {
     console.error('[SMES] Parse error:', err.message);
   }
 });
+
+// Prune old SMES track index entries every 5 min
+setInterval(() => { if (smesTrackIndex.size > 50000) smesTrackIndex.clear(); }, 300_000);
 
 // --- Active airlines API ---
 app.get('/api/airlines', (req, res) => {
