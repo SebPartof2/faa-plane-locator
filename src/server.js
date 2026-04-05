@@ -331,17 +331,22 @@ app.get('/api/codes/missing', (req, res) => {
 
 // --- Health API (for Docker healthcheck) ---
 app.get('/api/health', (req, res) => {
-  const flights = flightStore.getAll();
+  const allFlights = flightStore.getAll();
+  const statusFilter = req.query.status || '';
+  const flights = statusFilter ? allFlights.filter(f => f.flightStatus === statusFilter) : allFlights;
 
   // Data coverage
   let hasPos = 0, hasType = 0, hasAirline = 0, hasRoute = 0;
   const statuses = {}, centres = {}, topAirlines = {}, topOrigins = {}, topDests = {};
+  // Always count statuses from all flights
+  for (const f of allFlights) {
+    statuses[f.flightStatus || 'UNKNOWN'] = (statuses[f.flightStatus || 'UNKNOWN'] || 0) + 1;
+  }
   for (const f of flights) {
     if (f.lat != null) hasPos++;
     if (f.aircraftType) hasType++;
     if (f.airline) hasAirline++;
     if (f.route) hasRoute++;
-    statuses[f.flightStatus || 'UNKNOWN'] = (statuses[f.flightStatus || 'UNKNOWN'] || 0) + 1;
     if (f.centre) centres[f.centre] = (centres[f.centre] || 0) + 1;
     if (f.airline) topAirlines[f.airline] = (topAirlines[f.airline] || 0) + 1;
     if (f.origin) topOrigins[f.origin] = (topOrigins[f.origin] || 0) + 1;

@@ -29,6 +29,20 @@
     #header a { color: #007aff; text-decoration: none; font-size: 14px; }
     #header a:hover { text-decoration: underline; }
 
+    .hf-btn {
+      background: #f2f2f7;
+      border: none;
+      color: #8e8e93;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .hf-btn.active { background: #007aff; color: #fff; }
+    .hf-btn:hover:not(.active) { background: #e5e5ea; }
+
     .content {
       max-width: 1000px;
       margin: 0 auto;
@@ -159,6 +173,13 @@
   <div id="header">
     <a href="/">&larr; Flights</a>
     <h1>System Dashboard</h1>
+    <div style="margin-left:auto; display:flex; gap:6px;">
+      <button class="hf-btn active" data-status="">All</button>
+      <button class="hf-btn" data-status="ACTIVE">Active</button>
+      <button class="hf-btn" data-status="PROPOSED">Proposed</button>
+      <button class="hf-btn" data-status="PLANNED">Planned</button>
+      <button class="hf-btn" data-status="DROPPED">Dropped</button>
+    </div>
   </div>
 
   <div class="content">
@@ -190,9 +211,21 @@
       ).join('');
     }
 
+    let healthStatusFilter = '';
+
+    document.querySelectorAll('.hf-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.hf-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        healthStatusFilter = btn.dataset.status;
+        refresh();
+      });
+    });
+
     async function refresh() {
       try {
-        const res = await fetch('/api/health');
+        const params = healthStatusFilter ? `?status=${healthStatusFilter}` : '';
+        const res = await fetch(`/api/health${params}`);
         const d = await res.json();
         const total = d.flights.total;
 
