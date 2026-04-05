@@ -206,7 +206,8 @@ app.get('/api/codes/missing', (req, res) => {
   }
 
   scored.sort((a, b) => b.priority - a.priority);
-  const top = scored[0];
+  const skip = parseInt(req.query.skip) || 0;
+  const top = scored[skip % scored.length];
   if (!top) return res.json({ message: 'All codes covered!' });
 
   const f = top.flight;

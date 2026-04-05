@@ -324,8 +324,10 @@
       loadNext();
     }
 
+    let skipIndex = 0;
+
     async function loadNext() {
-      const res = await fetch('/api/codes/missing');
+      const res = await fetch(`/api/codes/missing?skip=${skipIndex++}`);
       const data = await res.json();
 
       if (data.message) {
@@ -345,7 +347,7 @@
       if (codes.dest) needs.push(`<span class="tag needed">Airport: ${codes.dest.code} (${codes.dest.count} flights)</span>`);
 
       document.getElementById('missing-panel').innerHTML = `
-        <h2>Priority: ${data._priority}</h2>
+        <h2>Priority: ${data._priority} <span style="font-size:12px;color:#8e8e93;font-weight:500">#${skipIndex}</span></h2>
         <div class="tags">${needs.join('')}</div>
         <button class="btn" onclick="loadNext()">Next</button>
         <p class="hint">${data._totalMissingAirlines} missing airlines, ${data._totalMissingAirports} missing airports remaining</p>
