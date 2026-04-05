@@ -233,6 +233,34 @@ app.get('/api/airlines', (req, res) => {
   res.json(airlines);
 });
 
+// --- Home stats API ---
+app.get('/api/stats', (req, res) => {
+  const flights = flightStore.getAll();
+  const active = flights.filter(f => f.flightStatus === 'ACTIVE');
+
+  // Most common airline
+  const airlines = {};
+  for (const f of active) {
+    if (f.airline) airlines[f.airline] = (airlines[f.airline] || 0) + 1;
+  }
+  const topAirline = Object.entries(airlines).sort((a, b) => b[1] - a[1])[0];
+
+  // Most common aircraft
+  const aircraft = {};
+  for (const f of active) {
+    if (f.aircraftType) aircraft[f.aircraftType] = (aircraft[f.aircraftType] || 0) + 1;
+  }
+  const topAircraft = Object.entries(aircraft).sort((a, b) => b[1] - a[1])[0];
+
+  res.json({
+    activeFlights: active.length,
+    totalFlights: flights.length,
+    topAirline: topAirline ? { code: topAirline[0], count: topAirline[1] } : null,
+    topAircraft: topAircraft ? { type: topAircraft[0], count: topAircraft[1] } : null,
+    activeRestrictions: flowStore.getActive().length,
+  });
+});
+
 // --- Flow restrictions API ---
 app.get('/api/flow', (req, res) => {
   const airport = req.query.airport || '';
