@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Missing Codes</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, 'SF Pro Display', system-ui, sans-serif;
+      background: #f2f2f7;
+      color: #1c1c1e;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 32px;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 24px;
+    }
+
+    .field {
+      margin-bottom: 16px;
+    }
+
+    .label {
+      font-size: 11px;
+      color: #8e8e93;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .value {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1c1c1e;
+      font-family: 'SF Mono', 'Consolas', monospace;
+    }
+
+    .value.missing {
+      color: #ff3b30;
+    }
+
+    .value.present {
+      color: #34c759;
+    }
+
+    .tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+      margin-bottom: 20px;
+    }
+
+    .tag {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 6px;
+      text-transform: uppercase;
+    }
+
+    .tag.needed { background: #ff3b3020; color: #ff3b30; }
+    .tag.ok { background: #34c75920; color: #248a3d; }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      background: #007aff;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      margin-top: 12px;
+    }
+
+    .btn:hover { background: #0056cc; }
+    .btn:active { transform: scale(0.98); }
+
+    .done {
+      text-align: center;
+      font-size: 17px;
+      color: #34c759;
+      font-weight: 600;
+      padding: 40px 0;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: #8e8e93;
+      margin-top: 16px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Missing Codes</h1>
+    <div id="content"><div class="done">Loading...</div></div>
+  </div>
+
+  <script>
+    let airportLookup = {};
+    let airlineLookup = {};
+
+    async function init() {
+      [airportLookup, airlineLookup] = await Promise.all([
+        fetch('/data/airports.json').then(r => r.json()),
+        fetch('/data/airlines.json').then(r => r.json()),
+      ]);
+      loadNext();
+    }
+
+    async function loadNext() {
+      const res = await fetch('/api/codes/missing');
+      const data = await res.json();
+
+      if (data.message) {
+        document.getElementById('content').innerHTML = `<div class="done">${data.message}</div>`;
+        return;
+      }
+
+      // Check what's missing from our lookups
+      const airlineCode = data.airlineCode;
+      const hasAirline = !airlineCode || airlineLookup[airlineCode];
+      const hasOrigin = !data.origin || airportLookup[data.origin];
+      const hasDest = !data.destination || airportLookup[data.destination];
+
+      // If everything is already covered, skip to next
+      if (hasAirline && hasOrigin && hasDest) {
+        loadNext();
+        return;
+      }
+
+      const needs = [];
+      if (!hasAirline) needs.push(`<span class="tag needed">Airline: ${airlineCode}</span>`);
+      if (!hasOrigin) needs.push(`<span class="tag needed">Airport: ${data.origin}</span>`);
+      if (!hasDest) needs.push(`<span class="tag needed">Airport: ${data.destination}</span>`);
+
+      document.getElementById('content').innerHTML = `
+        <div class="field">
+          <div class="label">Callsign</div>
+          <div class="value">${data.callsign}</div>
+        </div>
+        ${airlineCode ? `<div class="field">
+          <div class="label">Airline Code</div>
+          <div class="value ${hasAirline ? 'present' : 'missing'}">${airlineCode} ${hasAirline ? '- ' + airlineLookup[airlineCode].short : '- ???'}</div>
+        </div>` : ''}
+        <div class="field">
+          <div class="label">Origin</div>
+          <div class="value ${hasOrigin ? 'present' : 'missing'}">${data.origin || '—'} ${hasOrigin && data.origin ? '- ' + airportLookup[data.origin].name : ''}</div>
+        </div>
+        <div class="field">
+          <div class="label">Destination</div>
+          <div class="value ${hasDest ? 'present' : 'missing'}">${data.destination || '—'} ${hasDest && data.destination ? '- ' + airportLookup[data.destination].name : ''}</div>
+        </div>
+        ${data.aircraftType ? `<div class="field">
+          <div class="label">Aircraft Type</div>
+          <div class="value">${data.aircraftType}</div>
+        </div>` : ''}
+        <div class="tags">${needs.join('')}</div>
+        <button class="btn" onclick="loadNext()">Next</button>
+        <p class="hint">Add missing codes to airports.json / airlines.json and redeploy.</p>
+      `;
+    }
+
+    init();
+  </script>
+</body>
+</html>

@@ -124,6 +124,51 @@ tfmsClient.on('message', (payload) => {
   }
 });
 
+// --- Missing codes endpoint ---
+app.get('/codes', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'codes.html'));
+});
+
+app.get('/api/codes/missing', (req, res) => {
+  const flights = flightStore.getAll();
+  const missing = [];
+
+  for (const f of flights) {
+    if (!f.callsign) continue;
+
+    const airlineMatch = f.callsign.match(/^([A-Z]+)\d/);
+    const airlineCode = airlineMatch ? airlineMatch[1] : null;
+    const isNNumber = /^N\d/.test(f.callsign);
+
+    // Skip N-numbers
+    if (isNNumber) continue;
+
+    const needs = [];
+    if (airlineCode && airlineCode.length >= 2) needs.push('airline');
+    if (f.origin) needs.push('origin');
+    if (f.destination) needs.push('destination');
+
+    if (needs.length > 0) {
+      missing.push({
+        callsign: f.callsign,
+        airlineCode: airlineCode || null,
+        origin: f.origin || null,
+        destination: f.destination || null,
+        aircraftType: f.aircraftType || null,
+        flightStatus: f.flightStatus || null,
+      });
+    }
+  }
+
+  // Pick a random one
+  if (missing.length === 0) {
+    return res.json({ message: 'All codes covered!' });
+  }
+
+  const pick = missing[Math.floor(Math.random() * missing.length)];
+  res.json(pick);
+});
+
 // --- Health check endpoint ---
 app.get('/health', (req, res) => {
   res.json({
