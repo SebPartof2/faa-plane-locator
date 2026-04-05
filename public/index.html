@@ -283,17 +283,6 @@
       color: #8e8e93;
     }
 
-    .surface-badge {
-      font-size: 12px;
-      font-weight: 600;
-      color: #007aff;
-      background: #007aff15;
-      padding: 4px 10px;
-      border-radius: 6px;
-      margin-bottom: 8px;
-      display: inline-block;
-    }
-
     /* Row 4: Aircraft Type */
     .card-aircraft {
       font-size: 13px;
@@ -623,7 +612,6 @@
           </div>
         </div>
 
-        ${f.surfaceAirport ? `<div class="surface-badge">On Ground: ${getAirportName(f.surfaceAirport) || f.surfaceAirport}</div>` : ''}
 
         ${(() => {
           const prog = getProgress(f);

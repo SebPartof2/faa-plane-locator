@@ -201,17 +201,6 @@
     .data-item-value.small { font-size: 14px; }
     .data-item-value.mono { font-size: 12px; color: #8e8e93; word-break: break-all; }
 
-    /* Surface badge */
-    .surface-badge {
-      font-size: 13px;
-      font-weight: 600;
-      color: #007aff;
-      background: #007aff15;
-      padding: 6px 12px;
-      border-radius: 8px;
-      display: inline-block;
-      margin-bottom: 12px;
-    }
 
     /* Delay */
     .delay-on-time { color: #34c759; }
@@ -347,11 +336,6 @@
             <div id="arr-time"></div>
           </div>
         </div>
-      </div>
-
-      <!-- Surface -->
-      <div id="surface-card" class="card" style="display:none">
-        <div class="surface-badge" id="surface-text"></div>
       </div>
 
       <!-- Map -->
@@ -571,12 +555,6 @@
         ? `<div class="time-box${f.etdType !== 'ACTUAL' ? ' estimated' : ''}"><span class="time-type">${f.etdType === 'ACTUAL' ? 'DEP ' : 'ETD '}</span>${fmtTime(f.etd)}</div>` : '';
       document.getElementById('arr-time').innerHTML = f.eta
         ? `<div class="time-box${f.etaType !== 'ACTUAL' ? ' estimated' : ''}"><span class="time-type">${f.etaType === 'ACTUAL' ? 'ARR ' : 'ETA '}</span>${fmtTime(f.eta)}</div>` : '';
-
-      // Surface
-      if (f.surfaceAirport) {
-        document.getElementById('surface-card').style.display = 'block';
-        document.getElementById('surface-text').textContent = `On Ground: ${getAirportName(f.surfaceAirport) || f.surfaceAirport}`;
-      }
 
       // Live data (fall back to surface data)
       const alt = f.actualAltitude || f.altitude;
