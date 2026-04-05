@@ -68,6 +68,7 @@ function parseFlightMessage(msg) {
     etdType: etd['@_etdType'] || null,
     etaType: eta['@_etaType'] || null,
     // Source
+    dataSource: 'TFMS',
     source: 'tfms',
   };
 

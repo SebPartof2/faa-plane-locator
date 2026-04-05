@@ -132,6 +132,7 @@ function parseFixmMessage(xmlString) {
       flightType: flight['@_flightType'] || null,
       centre: flight['@_centre'] || null,
       sector,
+      dataSource: flight['@_centre'] ? `ERAM ${flight['@_centre']}` : null,
       altitude,
       airspeed,
       lat,
