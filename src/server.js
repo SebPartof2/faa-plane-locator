@@ -151,7 +151,7 @@ app.get('/api/codes/missing', (req, res) => {
     const airlineMatch = f.callsign.match(/^([A-Z]{2,})\d/);
     const airlineCode = airlineMatch ? airlineMatch[1] : null;
 
-    if (airlineCode && !airlineLookup[airlineCode]) {
+    if (airlineCode && !airlineLookup[airlineCode] && airlineCode.length >= 3) {
       missingAirlines[airlineCode] = (missingAirlines[airlineCode] || 0) + 1;
       if (!flightsByCode[airlineCode]) flightsByCode[airlineCode] = f;
     }
@@ -169,6 +169,9 @@ app.get('/api/codes/missing', (req, res) => {
     return res.json({ message: 'All codes covered!' });
   }
 
+  // ERAM internal codes to ignore (not real airlines)
+  const ignoredAirlineCodes = new Set(['LN', 'RV', 'QQ', 'ZZ', 'XX', 'TT']);
+
   // Score each flight by total priority (sum of frequencies of its missing codes)
   // Airlines weighted 2x since they affect more flights
   const scored = [];
@@ -182,7 +185,7 @@ app.get('/api/codes/missing', (req, res) => {
     const codes = {};
     let priority = 0;
 
-    if (airlineCode && missingAirlines[airlineCode]) {
+    if (airlineCode && !ignoredAirlineCodes.has(airlineCode) && missingAirlines[airlineCode]) {
       codes.airline = { code: airlineCode, count: missingAirlines[airlineCode] };
       priority += missingAirlines[airlineCode] * 2;
     }
@@ -206,8 +209,19 @@ app.get('/api/codes/missing', (req, res) => {
   }
 
   scored.sort((a, b) => b.priority - a.priority);
+
+  // Dedupe by priority value so Next always shows a different priority level
+  const uniqueByPriority = [];
+  const seenPriorities = new Set();
+  for (const s of scored) {
+    if (!seenPriorities.has(s.priority)) {
+      seenPriorities.add(s.priority);
+      uniqueByPriority.push(s);
+    }
+  }
+
   const skip = parseInt(req.query.skip) || 0;
-  const top = scored[skip % scored.length];
+  const top = uniqueByPriority[skip % uniqueByPriority.length];
   if (!top) return res.json({ message: 'All codes covered!' });
 
   const f = top.flight;
