@@ -550,11 +550,11 @@
       document.getElementById('dest-name').textContent = getAirportName(f.destination) || f.destination || '—';
       document.getElementById('dest-icao').textContent = f.destination || '';
 
-      // Departure/Arrival times — prefer airline out/in, fall back to ETD/ETA
-      const depTime = f.airlineOut || f.etd;
-      const depIsActual = !!f.airlineOut || f.etdType === 'ACTUAL';
-      const arrTime = f.airlineIn || f.eta;
-      const arrIsActual = !!f.airlineIn || f.etaType === 'ACTUAL';
+      // Departure/Arrival times — prefer FAA gate times, fall back to ETD/ETA
+      const depTime = f.gateOut || f.etd;
+      const depIsActual = !!f.gateOut || f.etdType === 'ACTUAL';
+      const arrTime = f.gateIn || f.eta;
+      const arrIsActual = !!f.gateIn || f.etaType === 'ACTUAL';
 
       document.getElementById('dep-time').innerHTML = depTime
         ? `<div class="time-box${!depIsActual ? ' estimated' : ''}"><span class="time-type">${depIsActual ? 'DEP ' : 'ETD '}</span>${fmtTime(depTime)}</div>` : '';
@@ -579,9 +579,9 @@
       document.getElementById('centre').innerHTML = (f.centre || '—') + srcTag('centre');
       document.getElementById('sector').innerHTML = (f.sector || '—') + srcTag('sector');
 
-      // Delay — use airline out/in vs scheduled
-      const depDelay = getDelay(f.scheduledDep, f.airlineOut || f.etd);
-      const arrDelay = getDelay(f.scheduledArr, f.airlineIn || f.eta);
+      // Delay — use FAA gate times vs scheduled
+      const depDelay = getDelay(f.scheduledDep, f.gateOut || f.etd);
+      const arrDelay = getDelay(f.scheduledArr, f.gateIn || f.eta);
       const delay = arrDelay !== null ? arrDelay : depDelay;
       if (delay !== null) {
         if (delay <= 0) {
