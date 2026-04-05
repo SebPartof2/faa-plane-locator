@@ -24,6 +24,10 @@ class FlightStore {
         const now = Date.now();
         for (const flight of data) {
           if (now - flight.lastUpdated < STALE_MS) {
+            // Restore dataSources as Set from cached array
+            if (Array.isArray(flight.dataSources)) {
+              flight.dataSources = new Set(flight.dataSources);
+            }
             this.flights.set(flight.fdpsGufi || flight.gufi, flight);
             loaded++;
           }
@@ -62,6 +66,7 @@ class FlightStore {
       }
 
       for (const [k, v] of Object.entries(plan)) {
+        if (k === 'dataSources') continue; // managed above
         if (v !== null && v !== undefined) {
           existing[k] = v;
         }
