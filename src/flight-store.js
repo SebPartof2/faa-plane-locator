@@ -71,8 +71,13 @@ class FlightStore {
         existing.dataSources.add(plan.dataSource);
       }
 
+      // Terminal statuses are sticky — don't let them regress
+      const terminalStatuses = new Set(['COMPLETED', 'DROPPED']);
+      const existingIsTerminal = terminalStatuses.has(existing.flightStatus);
+
       for (const [k, v] of Object.entries(plan)) {
         if (k === 'dataSources') continue; // managed above
+        if (k === 'flightStatus' && existingIsTerminal && !terminalStatuses.has(v)) continue;
         if (v !== null && v !== undefined) {
           existing[k] = v;
         }
