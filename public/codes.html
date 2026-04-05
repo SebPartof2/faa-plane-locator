@@ -17,55 +17,172 @@
       padding: 20px;
     }
 
-    .card {
-      background: #fff;
-      border-radius: 16px;
-      padding: 32px;
+    .wrapper {
       max-width: 420px;
       width: 100%;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
 
-    h1 {
-      font-size: 20px;
+    /* --- Flight Card (same as index.html) --- */
+    .flight-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+
+    .card-row-airline {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .airline-logo {
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
       font-weight: 700;
-      margin-bottom: 24px;
+      color: #8e8e93;
+      overflow: hidden;
+      flex-shrink: 0;
     }
 
-    .field {
-      margin-bottom: 16px;
+    .airline-logo img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
     }
 
-    .label {
+    .airline-name {
+      font-size: 17px;
+      font-weight: 600;
+      color: #1c1c1e;
+    }
+
+    .flight-status-pill {
+      margin-left: auto;
       font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .pill-active { background: #34c75920; color: #248a3d; }
+    .pill-proposed { background: #ff9f0a20; color: #c93400; }
+    .pill-completed { background: #8e8e9320; color: #636366; }
+    .pill-other { background: #8e8e9320; color: #636366; }
+
+    .card-route {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .route-endpoint { flex: 1; }
+
+    .airport-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1c1c1e;
+      line-height: 1.3;
+    }
+
+    .airport-icao {
+      font-size: 12px;
+      color: #8e8e93;
+      font-weight: 500;
+    }
+
+    .route-arrow {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+      padding: 0 4px;
+    }
+
+    .route-line {
+      width: 40px;
+      height: 1px;
+      background: #d1d1d6;
+      position: relative;
+    }
+
+    .route-line::after {
+      content: '';
+      position: absolute;
+      right: -1px;
+      top: -3px;
+      width: 0;
+      height: 0;
+      border-left: 5px solid #d1d1d6;
+      border-top: 3px solid transparent;
+      border-bottom: 3px solid transparent;
+    }
+
+    .card-aircraft {
+      font-size: 13px;
+      color: #8e8e93;
+      margin-bottom: 10px;
+      font-weight: 500;
+    }
+
+    .card-live-data {
+      display: flex;
+      gap: 16px;
+      padding-top: 10px;
+      border-top: 1px solid #f2f2f7;
+    }
+
+    .live-item {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .live-label {
+      font-size: 10px;
       color: #8e8e93;
       text-transform: uppercase;
       font-weight: 600;
-      letter-spacing: 0.5px;
-      margin-bottom: 4px;
+      letter-spacing: 0.3px;
     }
 
-    .value {
-      font-size: 18px;
+    .live-value {
+      font-size: 14px;
       font-weight: 600;
       color: #1c1c1e;
-      font-family: 'SF Mono', 'Consolas', monospace;
+      font-variant-numeric: tabular-nums;
     }
 
-    .value.missing {
-      color: #ff3b30;
+    /* --- Missing codes panel --- */
+    .missing-panel {
+      background: #fff;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
     }
 
-    .value.present {
-      color: #34c759;
+    .missing-panel h2 {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 16px;
     }
 
     .tags {
       display: flex;
       gap: 6px;
       flex-wrap: wrap;
-      margin-top: 20px;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
     }
 
     .tag {
@@ -91,11 +208,17 @@
       font-weight: 600;
       cursor: pointer;
       font-family: inherit;
-      margin-top: 12px;
     }
 
     .btn:hover { background: #0056cc; }
     .btn:active { transform: scale(0.98); }
+
+    .hint {
+      font-size: 12px;
+      color: #8e8e93;
+      margin-top: 12px;
+      line-height: 1.5;
+    }
 
     .done {
       text-align: center;
@@ -104,24 +227,94 @@
       font-weight: 600;
       padding: 40px 0;
     }
-
-    .hint {
-      font-size: 12px;
-      color: #8e8e93;
-      margin-top: 16px;
-      line-height: 1.5;
-    }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Missing Codes</h1>
-    <div id="content"><div class="done">Loading...</div></div>
+  <div class="wrapper">
+    <div id="card-preview"></div>
+    <div id="missing-panel" class="missing-panel">
+      <div class="done">Loading...</div>
+    </div>
   </div>
 
   <script>
     let airportLookup = {};
     let airlineLookup = {};
+
+    function getAirportName(icao) {
+      if (!icao) return null;
+      return airportLookup[icao]?.name || null;
+    }
+
+    function getAirlineInfo(callsign) {
+      if (!callsign) return null;
+      const match = callsign.match(/^([A-Z]+)/);
+      if (!match) return null;
+      return airlineLookup[match[1]] || null;
+    }
+
+    function isNNumber(callsign) {
+      return callsign && /^N\d/.test(callsign);
+    }
+
+    function getFlightNumber(callsign) {
+      if (!callsign) return '';
+      if (isNNumber(callsign)) return callsign;
+      const match = callsign.match(/^([A-Z]+)(\d+.*)$/);
+      if (!match) return callsign;
+      const airlineInfo = airlineLookup[match[1]];
+      const shortName = airlineInfo?.short || airlineInfo?.name || match[1];
+      return `${shortName} ${match[2]} (${callsign})`;
+    }
+
+    function buildCard(f) {
+      const airlineInfo = getAirlineInfo(f.callsign);
+      const flightNum = getFlightNumber(f.callsign);
+      const logoCode = f.callsign ? f.callsign.match(/^[A-Z]+/)?.[0] || '?' : '?';
+      const originName = getAirportName(f.origin) || f.origin || '\u2014';
+      const destName = getAirportName(f.destination) || f.destination || '\u2014';
+      const alt = f.actualAltitude || f.altitude;
+      const spd = f.groundSpeed || f.airspeed;
+
+      let logoHtml;
+      if (isNNumber(f.callsign)) {
+        logoHtml = '<svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 2 L14 9 L21 12 L14 13 L14 20 L12 18 L10 20 L10 13 L3 12 L10 9 Z" fill="#8e8e93"/></svg>';
+      } else if (airlineInfo?.logo) {
+        logoHtml = `<img src="${airlineInfo.logo}" alt="${logoCode}">`;
+      } else {
+        logoHtml = logoCode;
+      }
+
+      const statusCls = f.flightStatus === 'ACTIVE' ? 'pill-active'
+        : f.flightStatus === 'PROPOSED' ? 'pill-proposed'
+        : f.flightStatus === 'COMPLETED' ? 'pill-completed' : 'pill-other';
+
+      return `<div class="flight-card">
+        <div class="card-row-airline">
+          <div class="airline-logo">${logoHtml}</div>
+          <span class="airline-name">${flightNum}</span>
+          <span class="flight-status-pill ${statusCls}">${f.flightStatus || '\u2014'}</span>
+        </div>
+        <div class="card-route">
+          <div class="route-endpoint">
+            <div class="airport-name">${originName}</div>
+            ${f.origin ? `<div class="airport-icao">${f.origin}</div>` : ''}
+          </div>
+          <div class="route-arrow"><div class="route-line"></div></div>
+          <div class="route-endpoint" style="text-align:right">
+            <div class="airport-name">${destName}</div>
+            ${f.destination ? `<div class="airport-icao">${f.destination}</div>` : ''}
+          </div>
+        </div>
+        <div class="card-aircraft">${f.aircraftType || '\u2014'}</div>
+        <div class="card-live-data">
+          <div class="live-item"><span class="live-label">Alt</span><span class="live-value">${alt != null ? Math.round(alt).toLocaleString() + "'" : '\u2014'}</span></div>
+          <div class="live-item"><span class="live-label">Speed</span><span class="live-value">${spd != null ? Math.round(spd) + ' kts' : '\u2014'}</span></div>
+          <div class="live-item"><span class="live-label">Hdg</span><span class="live-value">${f.heading != null ? Math.round(f.heading) + '\u00B0' : '\u2014'}</span></div>
+          <div class="live-item"><span class="live-label">Centre</span><span class="live-value">${f.centre || '\u2014'}</span></div>
+        </div>
+      </div>`;
+    }
 
     async function init() {
       [airportLookup, airlineLookup] = await Promise.all([
@@ -136,48 +329,35 @@
       const data = await res.json();
 
       if (data.message) {
-        document.getElementById('content').innerHTML = `<div class="done">${data.message}</div>`;
+        document.getElementById('card-preview').innerHTML = '';
+        document.getElementById('missing-panel').innerHTML = `<div class="done">${data.message}</div>`;
         return;
       }
 
-      // Check what's missing from our lookups
       const airlineCode = data.airlineCode;
       const hasAirline = !airlineCode || airlineLookup[airlineCode];
       const hasOrigin = !data.origin || airportLookup[data.origin];
       const hasDest = !data.destination || airportLookup[data.destination];
 
-      // If everything is already covered, skip to next
       if (hasAirline && hasOrigin && hasDest) {
         loadNext();
         return;
       }
 
+      // Show card preview
+      document.getElementById('card-preview').innerHTML = buildCard(data);
+
+      // Show missing tags
       const needs = [];
       if (!hasAirline) needs.push(`<span class="tag needed">Airline: ${airlineCode}</span>`);
       if (!hasOrigin) needs.push(`<span class="tag needed">Airport: ${data.origin}</span>`);
       if (!hasDest) needs.push(`<span class="tag needed">Airport: ${data.destination}</span>`);
+      if (hasAirline && airlineCode) needs.push(`<span class="tag ok">${airlineCode} OK</span>`);
+      if (hasOrigin && data.origin) needs.push(`<span class="tag ok">${data.origin} OK</span>`);
+      if (hasDest && data.destination) needs.push(`<span class="tag ok">${data.destination} OK</span>`);
 
-      document.getElementById('content').innerHTML = `
-        <div class="field">
-          <div class="label">Callsign</div>
-          <div class="value">${data.callsign}</div>
-        </div>
-        ${airlineCode ? `<div class="field">
-          <div class="label">Airline Code</div>
-          <div class="value ${hasAirline ? 'present' : 'missing'}">${airlineCode} ${hasAirline ? '- ' + airlineLookup[airlineCode].short : '- ???'}</div>
-        </div>` : ''}
-        <div class="field">
-          <div class="label">Origin</div>
-          <div class="value ${hasOrigin ? 'present' : 'missing'}">${data.origin || '—'} ${hasOrigin && data.origin ? '- ' + airportLookup[data.origin].name : ''}</div>
-        </div>
-        <div class="field">
-          <div class="label">Destination</div>
-          <div class="value ${hasDest ? 'present' : 'missing'}">${data.destination || '—'} ${hasDest && data.destination ? '- ' + airportLookup[data.destination].name : ''}</div>
-        </div>
-        ${data.aircraftType ? `<div class="field">
-          <div class="label">Aircraft Type</div>
-          <div class="value">${data.aircraftType}</div>
-        </div>` : ''}
+      document.getElementById('missing-panel').innerHTML = `
+        <h2>Needs</h2>
         <div class="tags">${needs.join('')}</div>
         <button class="btn" onclick="loadNext()">Next</button>
         <p class="hint">Add missing codes to airports.json / airlines.json and redeploy.</p>
