@@ -62,6 +62,12 @@ class FlightStore {
         if (typeof existing.dataSources === 'object' && !(existing.dataSources instanceof Set)) {
           existing.dataSources = new Set(existing.dataSources);
         }
+        // For ERAM, only keep the most recent centre (replace old ERAM entries)
+        if (plan.dataSource.startsWith('ERAM ')) {
+          for (const src of existing.dataSources) {
+            if (src.startsWith('ERAM ')) existing.dataSources.delete(src);
+          }
+        }
         existing.dataSources.add(plan.dataSource);
       }
 
