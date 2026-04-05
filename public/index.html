@@ -191,6 +191,13 @@
       font-weight: 500;
     }
 
+    .time-label {
+      font-size: 12px;
+      color: #007aff;
+      font-weight: 500;
+      margin-top: 2px;
+    }
+
     .route-arrow {
       display: flex;
       flex-direction: column;
@@ -320,6 +327,12 @@
       if (!match) return null;
       const code = match[1];
       return airlineLookup[code] || null;
+    }
+
+    function fmtTime(isoStr) {
+      if (!isoStr) return '';
+      const d = new Date(isoStr);
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
     function isNNumber(callsign) {
@@ -485,6 +498,7 @@
           <div class="route-endpoint">
             <div class="airport-name">${originName}</div>
             ${f.origin ? `<div class="airport-icao">${f.origin}</div>` : ''}
+            ${f.etd ? `<div class="time-label">${fmtTime(f.etd)} ${f.etdType === 'ACTUAL' ? 'dep' : 'etd'}</div>` : ''}
           </div>
           <div class="route-arrow">
             <div class="route-line"></div>
@@ -492,6 +506,7 @@
           <div class="route-endpoint" style="text-align: right">
             <div class="airport-name">${destName}</div>
             ${f.destination ? `<div class="airport-icao">${f.destination}</div>` : ''}
+            ${f.eta ? `<div class="time-label">${fmtTime(f.eta)} ${f.etaType === 'ACTUAL' ? 'arr' : 'eta'}</div>` : ''}
           </div>
         </div>
 
