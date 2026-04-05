@@ -8,78 +8,162 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: -apple-system, 'SF Pro Display', system-ui, sans-serif;
-      background: #0a0a1a;
-      color: #e0e0e0;
-      padding: 24px;
-      max-width: 1000px;
-      margin: 0 auto;
+      background: #f2f2f7;
+      color: #1c1c1e;
+      -webkit-font-smoothing: antialiased;
     }
 
-    h1 { font-size: 22px; font-weight: 700; color: #fff; margin-bottom: 24px; }
-    h2 { font-size: 13px; font-weight: 600; color: #8e8e93; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
-
-    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 24px; }
-
-    .card {
-      background: #111128;
-      border: 1px solid #2a2a4a;
-      border-radius: 12px;
-      padding: 16px;
-    }
-
-    .card-label { font-size: 11px; color: #8e8e93; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-    .card-value { font-size: 28px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; }
-    .card-value.green { color: #34c759; }
-    .card-value.red { color: #ff3b30; }
-    .card-value.blue { color: #4fc3f7; }
-    .card-value.small { font-size: 18px; }
-
-    .bar-section { margin-bottom: 24px; }
-
-    .bar-row {
+    #header {
+      background: #fff;
+      padding: 16px 20px;
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin-bottom: 6px;
+      gap: 16px;
+      border-bottom: 1px solid #e5e5ea;
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
 
-    .bar-label { font-size: 13px; color: #aaa; width: 60px; text-align: right; flex-shrink: 0; }
-    .bar-track { flex: 1; height: 20px; background: #1a1a30; border-radius: 4px; overflow: hidden; }
-    .bar-fill { height: 100%; border-radius: 4px; min-width: 2px; }
-    .bar-fill.blue { background: #4fc3f7; }
-    .bar-fill.green { background: #34c759; }
-    .bar-fill.orange { background: #ff9f0a; }
-    .bar-fill.purple { background: #af52de; }
-    .bar-count { font-size: 12px; color: #666; width: 50px; font-variant-numeric: tabular-nums; }
+    #header h1 { font-size: 20px; font-weight: 700; }
+    #header a { color: #007aff; text-decoration: none; font-size: 14px; }
+    #header a:hover { text-decoration: underline; }
+
+    .content {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    h2 {
+      font-size: 13px;
+      font-weight: 600;
+      color: #8e8e93;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+      margin-top: 24px;
+    }
+
+    h2:first-child { margin-top: 0; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+
+    .card-label {
+      font-size: 11px;
+      color: #8e8e93;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+
+    .card-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: #1c1c1e;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .card-value.green { color: #34c759; }
+    .card-value.red { color: #ff3b30; }
+    .card-value.blue { color: #007aff; }
+    .card-value.small { font-size: 18px; }
+
+    .conn-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .status-dot.on { background: #34c759; }
+    .status-dot.off { background: #ff3b30; }
+
+    /* Coverage bars */
+    .coverage-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      margin-bottom: 8px;
+    }
 
     .coverage-row {
       display: flex;
       align-items: center;
       gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .coverage-row:last-child { margin-bottom: 0; }
+    .coverage-label { font-size: 13px; color: #8e8e93; width: 110px; font-weight: 500; }
+    .coverage-bar { flex: 1; height: 8px; background: #f2f2f7; border-radius: 4px; overflow: hidden; }
+    .coverage-fill { height: 100%; background: #34c759; border-radius: 4px; transition: width 0.3s; }
+    .coverage-pct { font-size: 13px; color: #1c1c1e; width: 40px; text-align: right; font-weight: 600; }
+
+    /* Bar charts */
+    .bar-section {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
       margin-bottom: 8px;
     }
-    .coverage-label { font-size: 13px; color: #aaa; width: 120px; }
-    .coverage-bar { flex: 1; height: 8px; background: #1a1a30; border-radius: 4px; overflow: hidden; }
-    .coverage-fill { height: 100%; background: #34c759; border-radius: 4px; }
-    .coverage-pct { font-size: 13px; color: #fff; width: 45px; text-align: right; font-weight: 600; }
 
-    .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-    .status-dot.on { background: #34c759; }
-    .status-dot.off { background: #ff3b30; }
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
 
-    .conn-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 14px; }
+    .bar-row:last-child { margin-bottom: 0; }
+    .bar-label { font-size: 13px; color: #8e8e93; width: 55px; text-align: right; flex-shrink: 0; font-weight: 500; }
+    .bar-track { flex: 1; height: 18px; background: #f2f2f7; border-radius: 4px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 4px; min-width: 2px; transition: width 0.3s; }
+    .bar-fill.blue { background: #007aff; }
+    .bar-fill.green { background: #34c759; }
+    .bar-fill.orange { background: #ff9f0a; }
+    .bar-fill.purple { background: #af52de; }
+    .bar-count { font-size: 12px; color: #8e8e93; width: 45px; font-variant-numeric: tabular-nums; font-weight: 500; }
 
-    .updated { font-size: 12px; color: #555; margin-top: 8px; text-align: center; }
-
-    a { color: #4fc3f7; text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    .nav { margin-bottom: 20px; font-size: 14px; }
+    .updated {
+      font-size: 12px;
+      color: #8e8e93;
+      margin-top: 20px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
-  <div class="nav"><a href="/">&larr; Flights</a></div>
-  <h1>System Dashboard</h1>
-  <div id="content">Loading...</div>
+  <div id="header">
+    <a href="/">&larr; Flights</a>
+    <h1>System Dashboard</h1>
+  </div>
+
+  <div class="content">
+    <div id="content">Loading...</div>
+  </div>
 
   <script>
     function fmtUptime(s) {
@@ -113,10 +197,10 @@
         const total = d.flights.total;
 
         const statusEntries = Object.entries(d.flights.statuses).sort((a, b) => b[1] - a[1]);
-        const maxStatus = statusEntries[0]?.[1] || 1;
         const maxCentre = d.topCentres[0]?.[1] || 1;
         const maxAirline = d.topAirlines[0]?.[1] || 1;
         const maxOrigin = d.topOrigins[0]?.[1] || 1;
+        const maxDest = d.topDestinations[0]?.[1] || 1;
 
         document.getElementById('content').innerHTML = `
           <h2>System</h2>
@@ -139,8 +223,12 @@
             </div>
           </div>
 
-          <h2>Flights (${total.toLocaleString()} total)</h2>
+          <h2>Flights</h2>
           <div class="grid">
+            <div class="card">
+              <div class="card-label">Total</div>
+              <div class="card-value">${total.toLocaleString()}</div>
+            </div>
             ${statusEntries.map(([status, count]) => `
               <div class="card">
                 <div class="card-label">${status}</div>
@@ -150,7 +238,7 @@
           </div>
 
           <h2>Data Coverage</h2>
-          <div class="card" style="margin-bottom:24px">
+          <div class="coverage-card">
             <div class="coverage-row">
               <span class="coverage-label">Position</span>
               <div class="coverage-bar"><div class="coverage-fill" style="width:${pct(d.coverage.position, total)}%"></div></div>
@@ -174,7 +262,7 @@
           </div>
 
           <h2>Lookups</h2>
-          <div class="grid" style="margin-bottom:24px">
+          <div class="grid">
             <div class="card">
               <div class="card-label">Airports</div>
               <div class="card-value blue">${d.lookups.airports}</div>
@@ -195,7 +283,7 @@
           <div class="bar-section">${renderBars(d.topOrigins, maxOrigin, 'orange')}</div>
 
           <h2>Top Destinations</h2>
-          <div class="bar-section">${renderBars(d.topDestinations, maxOrigin, 'purple')}</div>
+          <div class="bar-section">${renderBars(d.topDestinations, maxDest, 'purple')}</div>
 
           <div class="updated">Auto-refreshes every 10s</div>
         `;
