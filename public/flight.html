@@ -530,11 +530,13 @@
         document.getElementById('surface-text').textContent = `On Ground: ${getAirportName(f.surfaceAirport) || f.surfaceAirport}`;
       }
 
-      // Live data
+      // Live data (fall back to surface data)
       const alt = f.actualAltitude || f.altitude;
+      const spd = f.groundSpeed || f.airspeed || f.surfaceSpeed;
+      const hdg = f.heading ?? f.surfaceHeading;
       document.getElementById('altitude').textContent = alt != null ? Math.round(alt).toLocaleString() + "'" : '—';
-      document.getElementById('speed').textContent = (f.groundSpeed || f.airspeed) != null ? Math.round(f.groundSpeed || f.airspeed) + ' kts' : '—';
-      document.getElementById('heading').textContent = f.heading != null ? Math.round(f.heading) + '\u00B0' : '—';
+      document.getElementById('speed').textContent = spd != null ? Math.round(spd) + ' kts' : '—';
+      document.getElementById('heading').textContent = hdg != null ? Math.round(hdg) + '\u00B0' : '—';
 
       // Flight info
       document.getElementById('aircraft-type').textContent = f.aircraftType || '—';
