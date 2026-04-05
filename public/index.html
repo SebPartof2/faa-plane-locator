@@ -351,6 +351,21 @@
       return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
+    function getDelay(scheduled, actual) {
+      if (!scheduled || !actual) return null;
+      const diff = Math.round((new Date(actual) - new Date(scheduled)) / 60000);
+      return diff; // minutes (positive = late, negative = early)
+    }
+
+    function fmtDelay(minutes) {
+      if (minutes === null) return '';
+      if (minutes <= 0) return '<span style="color:#34c759">On Time</span>';
+      if (minutes < 60) return `<span style="color:#ff3b30">+${minutes}m late</span>`;
+      const h = Math.floor(minutes / 60);
+      const m = minutes % 60;
+      return `<span style="color:#ff3b30">+${h}h${m > 0 ? m + 'm' : ''} late</span>`;
+    }
+
     function isNNumber(callsign) {
       return callsign && /^N\d/.test(callsign);
     }
@@ -526,7 +541,12 @@
           </div>
         </div>
 
-        <div class="card-aircraft">${f.aircraftType || '—'}</div>
+        <div class="card-aircraft">${f.aircraftType || '—'}${(() => {
+          const depDelay = getDelay(f.scheduledDep, f.etd);
+          const arrDelay = getDelay(f.scheduledArr, f.eta);
+          const delay = arrDelay !== null ? arrDelay : depDelay;
+          return delay !== null ? ` · ${fmtDelay(delay)}` : '';
+        })()}</div>
 
         <div class="card-live-data">
           <div class="live-item">

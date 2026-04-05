@@ -67,6 +67,9 @@ function parseFlightMessage(msg) {
     eta: eta['@_timeValue'] || null,
     etdType: etd['@_etdType'] || null,
     etaType: eta['@_etaType'] || null,
+    // Scheduled times (for delay calculation)
+    scheduledDep: flightTimes['@_originalDeparture'] || null,
+    scheduledArr: flightTimes['@_originalArrival'] || null,
     // Source
     dataSource: 'TFMS',
     source: 'tfms',
