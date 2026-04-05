@@ -241,15 +241,15 @@
     /* Timeline */
     .timeline {
       position: relative;
-      padding-left: 28px;
+      padding-left: 24px;
     }
 
     .timeline::before {
       content: '';
       position: absolute;
-      left: 8px;
-      top: 4px;
-      bottom: 4px;
+      left: 5px;
+      top: 12px;
+      bottom: 12px;
       width: 2px;
       background: #e5e5ea;
       border-radius: 1px;
@@ -257,30 +257,25 @@
 
     .tl-item {
       position: relative;
-      padding: 8px 0;
-      display: flex;
-      align-items: center;
-      gap: 12px;
+      padding: 10px 0;
     }
 
     .tl-dot {
       position: absolute;
-      left: -23px;
-      width: 14px;
-      height: 14px;
+      left: -20px;
+      top: 14px;
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
       background: #e5e5ea;
-      border: 2px solid #fff;
       z-index: 1;
     }
 
     .tl-dot.completed { background: #34c759; }
-    .tl-dot.active { background: #007aff; box-shadow: 0 0 0 3px #007aff30; }
-    .tl-dot.future { background: #e5e5ea; }
-    .tl-dot.scheduled { background: #fff; border: 2px solid #d1d1d6; }
+    .tl-dot.active { background: #34c759; box-shadow: 0 0 0 3px #34c75930; }
+    .tl-dot.future { background: #d1d1d6; }
 
     .tl-content {
-      flex: 1;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -310,6 +305,32 @@
     .tl-sublabel {
       font-size: 11px;
       color: #8e8e93;
+    }
+
+    /* Radar lost */
+    .radar-lost {
+      width: 100%;
+      height: 280px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #1a0000;
+      border-radius: 12px;
+      gap: 8px;
+    }
+
+    .radar-lost-text {
+      color: #ff3b30;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .radar-lost-sub {
+      color: #ff3b3080;
+      font-size: 12px;
     }
 
     .debug-src {
@@ -398,6 +419,10 @@
         <h2>Position</h2>
         <div id="map" style="display:none"></div>
         <div class="map-placeholder" id="map-placeholder">Waiting for position data...</div>
+        <div class="radar-lost" id="radar-lost" style="display:none">
+          <div class="radar-lost-text">Radar Contact Lost</div>
+          <div class="radar-lost-sub" id="radar-lost-sub"></div>
+        </div>
       </div>
 
       <!-- Live Data -->
@@ -518,6 +543,21 @@
       const mapLon = f.lon ?? f.surfaceLon;
       const mapHeading = f.heading ?? f.surfaceHeading;
       if (mapLat == null || mapLon == null) return;
+
+      // Check if ERAM data is stale (>2 min since last timestamp)
+      const radarLost = document.getElementById('radar-lost');
+      if (f.timestamp && f.flightStatus === 'ACTIVE') {
+        const lastUpdate = new Date(f.timestamp).getTime();
+        const age = Date.now() - lastUpdate;
+        if (age > 120000) {
+          document.getElementById('map').style.display = 'none';
+          document.getElementById('map-placeholder').style.display = 'none';
+          radarLost.style.display = 'flex';
+          document.getElementById('radar-lost-sub').textContent = `Last update ${Math.floor(age / 60000)}m ${Math.floor((age % 60000) / 1000)}s ago`;
+          return;
+        }
+      }
+      radarLost.style.display = 'none';
 
       document.getElementById('map').style.display = 'block';
       document.getElementById('map-placeholder').style.display = 'none';
@@ -651,40 +691,41 @@
         document.getElementById('delay').textContent = '—';
       }
 
-      // Timeline
+      // Timeline — show completed steps with actual times, future steps with filed estimates
       const now = Date.now();
       const steps = [
-        { label: 'Scheduled', icon: 'scheduled', time: f.scheduledDep, sub: 'Filed departure' },
-        { label: 'Pushed Back', icon: 'gate', time: f.gateOut, sub: 'Left the gate' },
-        { label: 'Took Off', icon: 'takeoff', time: f.wheelsOff, sub: 'Wheels off' },
-        { label: 'Landed', icon: 'landing', time: f.wheelsOn, sub: 'Wheels on' },
-        { label: 'At Gate', icon: 'gate', time: f.gateIn, sub: 'Arrived at gate' },
-      ].filter(s => s.time);
+        { label: 'Pushed Back', time: f.gateOut, filed: f.scheduledDep, sub: 'Left the gate' },
+        { label: 'Took Off', time: f.wheelsOff, sub: 'Wheels off' },
+        { label: 'Landed', time: f.wheelsOn, filed: f.scheduledArr, sub: 'Wheels on' },
+        { label: 'At Gate', time: f.gateIn, sub: 'Arrived at gate' },
+      ];
 
-      if (steps.length > 0) {
-        // Figure out which step is "active" (latest completed)
+      // Only show if we have at least one time
+      const hasAny = steps.some(s => s.time || s.filed);
+      if (hasAny) {
         let activeIdx = -1;
         for (let i = steps.length - 1; i >= 0; i--) {
-          if (new Date(steps[i].time).getTime() <= now) { activeIdx = i; break; }
+          if (steps[i].time && new Date(steps[i].time).getTime() <= now) { activeIdx = i; break; }
         }
 
         document.getElementById('times-card').style.display = 'block';
         document.getElementById('timeline').innerHTML = steps.map((s, i) => {
-          const isPast = new Date(s.time).getTime() <= now;
+          const hasActual = s.time && new Date(s.time).getTime() <= now;
           const isActive = i === activeIdx;
-          const isFuture = !isPast;
-          const dotCls = s.label === 'Scheduled' ? 'scheduled' : isActive ? 'active' : isPast ? 'completed' : 'future';
-          const labelCls = isFuture ? ' dimmed' : '';
-          const timeCls = isFuture ? ' dimmed' : '';
+          const dotCls = hasActual ? (isActive ? 'active' : 'completed') : 'future';
+          const displayTime = hasActual ? s.time : (s.time || s.filed);
+          const isFuture = !hasActual;
+
+          if (!displayTime) return '';
 
           return `<div class="tl-item">
             <div class="tl-dot ${dotCls}"></div>
             <div class="tl-content">
               <div>
-                <div class="tl-label${labelCls}">${s.label}</div>
-                <div class="tl-sublabel">${s.sub}</div>
+                <div class="tl-label${isFuture ? ' dimmed' : ''}">${s.label}</div>
+                <div class="tl-sublabel">${hasActual ? s.sub : 'Estimated'}</div>
               </div>
-              <div class="tl-time${timeCls}">${fmtTime(s.time)}</div>
+              <div class="tl-time${isFuture ? ' dimmed' : ''}">${fmtTime(displayTime)}</div>
             </div>
           </div>`;
         }).join('');
