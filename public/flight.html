@@ -362,7 +362,7 @@
           <div><div class="data-item-label">Aircraft</div><div class="data-item-value" id="aircraft-type">—</div></div>
           <div><div class="data-item-label">Airline</div><div class="data-item-value small" id="airline">—</div></div>
           <div><div class="data-item-label">Category</div><div class="data-item-value small" id="category">—</div></div>
-          <div><div class="data-item-label">Delay</div><div class="data-item-value" id="delay">—</div></div>
+          <div><div class="data-item-label">vs Filed Plan</div><div class="data-item-value" id="delay">—</div></div>
           <div><div class="data-item-label">Centre</div><div class="data-item-value small" id="centre">—</div></div>
           <div><div class="data-item-label">Sector</div><div class="data-item-value small" id="sector">—</div></div>
         </div>
@@ -598,10 +598,12 @@
 
       // Times
       const times = [
-        ['Airline Out', f.airlineOut], ['Gate Out', f.gateOut],
-        ['Wheels Off', f.wheelsOff], ['Wheels On', f.wheelsOn],
-        ['Gate In', f.gateIn], ['Airline In', f.airlineIn],
-        ['Scheduled Dep', f.scheduledDep], ['Scheduled Arr', f.scheduledArr],
+        ['Scheduled Departure', f.scheduledDep],
+        ['Pushed Back', f.gateOut],
+        ['Took Off', f.wheelsOff],
+        ['Landed', f.wheelsOn],
+        ['Arrived at Gate', f.gateIn],
+        ['Scheduled Arrival', f.scheduledArr],
       ].filter(([, v]) => v);
 
       if (times.length > 0) {
