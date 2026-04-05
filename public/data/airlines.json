@@ -39,5 +39,12 @@
   "ERU": { "name": "Embry-Riddle Aeronautical University", "short": "Embry-Riddle" },
   "UCA": { "name": "CommutAir", "short": "CommutAir" },
   "DAE": { "name": "DHL Aero Expreso", "short": "DHL" },
-  "OCN": { "name": "Discover Airlines", "short": "Discover", "logo": "https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/4Y.svg" }
+  "OCN": { "name": "Discover Airlines", "short": "Discover", "logo": "https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/4Y.svg" },
+  "CSI": { "name": "Casino Express", "short": "Casino" },
+  "KOW": { "name": "Kalitta Charters", "short": "Kalitta" },
+  "GTI": { "name": "Atlas Air", "short": "Atlas Air" },
+  "EVE": { "name": "Evelop Airlines", "short": "Evelop" },
+  "IBE": { "name": "Iberia", "short": "Iberia", "logo": "https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/IB.svg" },
+  "JSX": { "name": "JSX", "short": "JSX", "logo": "https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/XE.svg" },
+  "VAR": { "name": "Voyager Aviation", "short": "Voyager" }
 }

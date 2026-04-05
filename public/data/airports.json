@@ -93,5 +93,15 @@
   "KRAP": { "name": "Rapid City, SD" },
   "MWCR": { "name": "Grand Cayman, Cayman Islands" },
   "EDDM": { "name": "Munich, Germany" },
-  "PHOG": { "name": "Kahului/Maui, HI" }
+  "PHOG": { "name": "Kahului/Maui, HI" },
+  "KELP": { "name": "El Paso, TX" },
+  "KABQ": { "name": "Albuquerque, NM" },
+  "MDPC": { "name": "Punta Cana, Dominican Republic" },
+  "KOPF": { "name": "Miami Opa-Locka, FL" },
+  "PANC": { "name": "Anchorage, AK" },
+  "LEMD": { "name": "Madrid, Spain" },
+  "MDSD": { "name": "Santo Domingo, Dominican Republic" },
+  "KOMA": { "name": "Omaha, NE" },
+  "KTUS": { "name": "Tucson, AZ" },
+  "KCHD": { "name": "Chandler, AZ" }
 }
