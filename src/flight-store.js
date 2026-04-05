@@ -57,10 +57,16 @@ class FlightStore {
 
     // Try primary key first, then fall back to callsign index
     let existing = this.flights.get(key);
+    let foundViaAlias = false;
     if (!existing && plan.callsign) {
       const aliasKey = this.callsignIndex.get(plan.callsign);
       if (aliasKey && aliasKey !== key) {
         existing = this.flights.get(aliasKey);
+        if (existing) {
+          // Store under both keys so either GUFI resolves
+          this.flights.set(key, existing);
+          foundViaAlias = true;
+        }
       }
     }
     if (existing) {
@@ -107,10 +113,19 @@ class FlightStore {
   }
 
   getAll() {
-    return Array.from(this.flights.values()).map(f => ({
-      ...f,
-      dataSources: f.dataSources instanceof Set ? [...f.dataSources] : (f.dataSources || []),
-    }));
+    // Dedupe since one record can be stored under multiple keys
+    const seen = new Set();
+    const results = [];
+    for (const f of this.flights.values()) {
+      const id = f.fdpsGufi || f.gufi;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      results.push({
+        ...f,
+        dataSources: f.dataSources instanceof Set ? [...f.dataSources] : (f.dataSources || []),
+      });
+    }
+    return results;
   }
 
   getStats() {
