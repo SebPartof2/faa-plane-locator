@@ -287,15 +287,57 @@ app.get('/api/codes/missing', (req, res) => {
   });
 });
 
-// --- Health check endpoint ---
-app.get('/health', (req, res) => {
+// --- Health API (for Docker healthcheck) ---
+app.get('/api/health', (req, res) => {
+  const flights = flightStore.getAll();
+
+  // Data coverage
+  let hasPos = 0, hasType = 0, hasAirline = 0, hasRoute = 0;
+  const statuses = {}, centres = {}, topAirlines = {}, topOrigins = {}, topDests = {};
+  for (const f of flights) {
+    if (f.lat != null) hasPos++;
+    if (f.aircraftType) hasType++;
+    if (f.airline) hasAirline++;
+    if (f.route) hasRoute++;
+    statuses[f.flightStatus || 'UNKNOWN'] = (statuses[f.flightStatus || 'UNKNOWN'] || 0) + 1;
+    if (f.centre) centres[f.centre] = (centres[f.centre] || 0) + 1;
+    if (f.airline) topAirlines[f.airline] = (topAirlines[f.airline] || 0) + 1;
+    if (f.origin) topOrigins[f.origin] = (topOrigins[f.origin] || 0) + 1;
+    if (f.destination) topDests[f.destination] = (topDests[f.destination] || 0) + 1;
+  }
+
+  const sortObj = (obj, n) => Object.entries(obj).sort((a, b) => b[1] - a[1]).slice(0, n);
+
+  // Load lookup sizes
+  let airportCount = 0, airlineCount = 0;
+  try {
+    airportCount = Object.keys(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'public', 'data', 'airports.json'), 'utf-8'))).length;
+    airlineCount = Object.keys(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'public', 'data', 'airlines.json'), 'utf-8'))).length;
+  } catch (e) { /* ignore */ }
+
   res.json({
     status: 'ok',
     uptime: Math.floor(process.uptime()),
-    fdps: fdpsClient.connected,
-    tfms: tfmsClient.connected,
-    flights: flightStore.getStats(),
+    memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+    connections: { fdps: fdpsClient.connected, tfms: tfmsClient.connected },
+    flights: { total: flights.length, statuses },
+    coverage: {
+      position: hasPos,
+      aircraftType: hasType,
+      airline: hasAirline,
+      route: hasRoute,
+    },
+    lookups: { airports: airportCount, airlines: airlineCount },
+    topCentres: sortObj(centres, 10),
+    topAirlines: sortObj(topAirlines, 10),
+    topOrigins: sortObj(topOrigins, 10),
+    topDestinations: sortObj(topDests, 10),
   });
+});
+
+// --- Health dashboard ---
+app.get('/health', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'health.html'));
 });
 
 // --- Stats logging ---
