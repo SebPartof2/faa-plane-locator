@@ -234,7 +234,16 @@ app.get('/api/airlines', (req, res) => {
 });
 
 // --- Home stats API ---
+let _statsCache = null;
+let _statsCacheTime = 0;
+
 app.get('/api/stats', (req, res) => {
+  const now = Date.now();
+  if (_statsCache && now - _statsCacheTime < 5000) {
+    res.set('Cache-Control', 'public, max-age=5');
+    return res.json(_statsCache);
+  }
+
   const flights = flightStore.getAll();
   const active = flights.filter(f => f.flightStatus === 'ACTIVE');
 
@@ -252,13 +261,16 @@ app.get('/api/stats', (req, res) => {
   }
   const topAircraft = Object.entries(aircraft).sort((a, b) => b[1] - a[1])[0];
 
-  res.json({
+  _statsCache = {
     activeFlights: active.length,
     totalFlights: flights.length,
     topAirline: topAirline ? { code: topAirline[0], count: topAirline[1] } : null,
     topAircraft: topAircraft ? { type: topAircraft[0], count: topAircraft[1] } : null,
     activeRestrictions: flowStore.getActive().length,
-  });
+  };
+  _statsCacheTime = now;
+  res.set('Cache-Control', 'public, max-age=5');
+  res.json(_statsCache);
 });
 
 // --- Flow restrictions API ---
@@ -319,11 +331,12 @@ app.get('/api/flights', (req, res) => {
   }
 
   // Sort by callsign
-  flights.sort((a, b) => (a.callsign || '').localeCompare(b.callsign || ''));
+  flights.sort((a, b) => String(a.callsign || '').localeCompare(String(b.callsign || '')));
 
   const total = flights.length;
   const paged = flights.slice(page * limit, (page + 1) * limit);
 
+  res.set('Cache-Control', 'public, max-age=2');
   res.json({
     flights: paged,
     total,

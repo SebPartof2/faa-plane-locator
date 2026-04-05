@@ -123,8 +123,14 @@ class FlightStore {
     return plan;
   }
 
+  // Cached getAll — rebuilt every 2s max
+  _cachedAll = null;
+  _cachedAllTime = 0;
+
   getAll() {
-    // Dedupe since one record can be stored under multiple keys
+    const now = Date.now();
+    if (this._cachedAll && now - this._cachedAllTime < 2000) return this._cachedAll;
+
     const seen = new Set();
     const results = [];
     for (const f of this.flights.values()) {
@@ -136,17 +142,28 @@ class FlightStore {
         dataSources: f.dataSources instanceof Set ? [...f.dataSources] : (f.dataSources || []),
       });
     }
+    this._cachedAll = results;
+    this._cachedAllTime = now;
     return results;
   }
 
+  // Cached stats — rebuilt every 2s max
+  _cachedStats = null;
+  _cachedStatsTime = 0;
+
   getStats() {
+    const now = Date.now();
+    if (this._cachedStats && now - this._cachedStatsTime < 2000) return this._cachedStats;
+
     let active = 0, proposed = 0, other = 0;
     for (const f of this.flights.values()) {
       if (f.flightStatus === 'ACTIVE') active++;
       else if (f.flightStatus === 'PROPOSED') proposed++;
       else other++;
     }
-    return { total: this.flights.size, active, proposed, other };
+    this._cachedStats = { total: this.flights.size, active, proposed, other };
+    this._cachedStatsTime = now;
+    return this._cachedStats;
   }
 
   prune() {
