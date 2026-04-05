@@ -103,5 +103,10 @@
   "MDSD": { "name": "Santo Domingo, Dominican Republic" },
   "KOMA": { "name": "Omaha, NE" },
   "KTUS": { "name": "Tucson, AZ" },
-  "KCHD": { "name": "Chandler, AZ" }
+  "KCHD": { "name": "Chandler, AZ" },
+  "TNCM": { "name": "St. Maarten, Netherlands" },
+  "TFFJ": { "name": "St. Barths, France" },
+  "TTPP": { "name": "Port of Spain, Trinidad and Tobago" },
+  "KSAV": { "name": "Savannah, GA" },
+  "KVNY": { "name": "Van Nuys, CA" }
 }
