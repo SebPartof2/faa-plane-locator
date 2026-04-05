@@ -440,6 +440,7 @@
     let currentPage = 0;
     let totalPages = 0;
     let totalFlights = 0;
+    let hasLoaded = false;
 
     const container = document.getElementById('card-container');
     const emptyState = document.getElementById('empty-state');
@@ -510,6 +511,7 @@
         totalFlights = data.total;
 
         document.getElementById('status-dot').classList.add('connected');
+        hasLoaded = true;
         updateStats(data.stats);
         renderCards();
       } catch (e) {
@@ -617,7 +619,7 @@
       if (currentFlights.length === 0) {
         container.innerHTML = '';
         emptyState.style.display = 'block';
-        emptyState.textContent = totalFlights === 0
+        emptyState.textContent = !hasLoaded
           ? 'Loading flights...'
           : 'No flights match your filter.';
         return;
