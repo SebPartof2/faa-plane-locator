@@ -82,6 +82,14 @@ class FlightStore {
           existing[k] = v;
         }
       }
+      // Auto-detect completion from OOOI times
+      if (existing.flightStatus === 'ACTIVE' && existing.gateIn) {
+        const gateInTime = new Date(existing.gateIn).getTime();
+        if (!isNaN(gateInTime) && gateInTime < Date.now()) {
+          existing.flightStatus = 'COMPLETED';
+        }
+      }
+
       existing.lastUpdated = Date.now();
       return existing;
     }
