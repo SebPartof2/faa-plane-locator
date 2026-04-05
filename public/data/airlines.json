@@ -39,5 +39,5 @@
   "ERU": { "name": "Embry-Riddle Aeronautical University", "short": "Embry-Riddle" },
   "UCA": { "name": "CommutAir", "short": "CommutAir" },
   "DAE": { "name": "DHL Aero Expreso", "short": "DHL" },
-  "OCN": { "name": "Oceanair", "short": "Oceanair" }
+  "OCN": { "name": "Discover Airlines", "short": "Discover", "logo": "https://assets.duffel.com/img/airlines/for-light-background/full-color-logo/4Y.svg" }
 }
