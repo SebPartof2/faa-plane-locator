@@ -4,8 +4,9 @@
 const fs = require('fs');
 const path = require('path');
 
-const STALE_MS = 4 * 60 * 60 * 1000; // remove flights not updated in 4 hours
-const CACHE_INTERVAL_MS = 60_000;     // save cache every 60s
+const STALE_MS = 4 * 60 * 60 * 1000;       // remove flights not updated in 4 hours
+const COMPLETED_MS = 20 * 60 * 1000;       // remove completed/dropped flights after 20 min
+const CACHE_INTERVAL_MS = 60_000;           // save cache every 60s
 
 class FlightStore {
   constructor(cacheDir) {
@@ -140,8 +141,12 @@ class FlightStore {
 
   prune() {
     const now = Date.now();
+    const terminal = new Set(['COMPLETED', 'DROPPED']);
     for (const [key, flight] of this.flights) {
-      if (now - flight.lastUpdated > STALE_MS) {
+      const age = now - flight.lastUpdated;
+      // Remove completed/dropped after 20 min, everything else after 4 hours
+      const maxAge = terminal.has(flight.flightStatus) ? COMPLETED_MS : STALE_MS;
+      if (age > maxAge) {
         if (flight.callsign) this.callsignIndex.delete(flight.callsign);
         this.flights.delete(key);
       }
