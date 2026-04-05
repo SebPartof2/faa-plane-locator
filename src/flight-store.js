@@ -10,6 +10,7 @@ const CACHE_INTERVAL_MS = 60_000;     // save cache every 60s
 class FlightStore {
   constructor(cacheDir) {
     this.flights = new Map();
+    this.callsignIndex = new Map(); // callsign -> primary key
     this.cacheFile = path.join(cacheDir || process.env.CACHE_DIR || './data', 'flight-cache.json');
     this.loadCache();
     this.pruneInterval = setInterval(() => this.prune(), 60_000);
@@ -54,7 +55,14 @@ class FlightStore {
     const key = plan.fdpsGufi || plan.gufi;
     if (!key) return plan;
 
-    const existing = this.flights.get(key);
+    // Try primary key first, then fall back to callsign index
+    let existing = this.flights.get(key);
+    if (!existing && plan.callsign) {
+      const aliasKey = this.callsignIndex.get(plan.callsign);
+      if (aliasKey && aliasKey !== key) {
+        existing = this.flights.get(aliasKey);
+      }
+    }
     if (existing) {
       // Accumulate data sources
       if (plan.dataSource) {
@@ -83,6 +91,7 @@ class FlightStore {
         }
       }
       existing.lastUpdated = Date.now();
+      if (existing.callsign) this.callsignIndex.set(existing.callsign, key);
       return existing;
     }
 
@@ -93,6 +102,7 @@ class FlightStore {
 
     plan.lastUpdated = Date.now();
     this.flights.set(key, plan);
+    if (plan.callsign) this.callsignIndex.set(plan.callsign, key);
     return plan;
   }
 
@@ -117,6 +127,7 @@ class FlightStore {
     const now = Date.now();
     for (const [key, flight] of this.flights) {
       if (now - flight.lastUpdated > STALE_MS) {
+        if (flight.callsign) this.callsignIndex.delete(flight.callsign);
         this.flights.delete(key);
       }
     }
