@@ -438,9 +438,12 @@
 
     function buildCard(f) {
       const airlineInfo = getAirlineInfo(f.callsign);
-      const airlineName = airlineInfo?.name || f.airline || '';
       const flightNum = getFlightNumber(f.callsign);
       const logoCode = f.callsign ? f.callsign.match(/^[A-Z]+/)?.[0] || '?' : '?';
+
+      // DBA: if majorAirline differs from airline, show the major's branding
+      const majorInfo = f.majorAirline ? airlineLookup[f.majorAirline] : null;
+      const dbaName = (majorInfo && f.majorAirline !== f.airline) ? (majorInfo.short || majorInfo.name) : null;
 
       const originName = getAirportName(f.origin) || f.origin || '—';
       const destName = getAirportName(f.destination) || f.destination || '—';
@@ -448,19 +451,24 @@
       const alt = f.actualAltitude || f.altitude;
       const spd = f.groundSpeed || f.airspeed;
 
+      // Use major airline logo if available, fall back to operating airline
+      const displayLogo = majorInfo?.logo || airlineInfo?.logo;
+
       let logoHtml;
       if (isNNumber(f.callsign)) {
         logoHtml = `<svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 2 L14 9 L21 12 L14 13 L14 20 L12 18 L10 20 L10 13 L3 12 L10 9 Z" fill="#8e8e93"/></svg>`;
-      } else if (airlineInfo?.logo) {
-        logoHtml = `<img src="${airlineInfo.logo}" alt="${logoCode}">`;
+      } else if (displayLogo) {
+        logoHtml = `<img src="${displayLogo}" alt="${logoCode}">`;
       } else {
         logoHtml = logoCode;
       }
 
+      const dbaHtml = dbaName ? `<span style="font-size:12px;color:#8e8e93;margin-left:4px">dba ${dbaName}</span>` : '';
+
       return `<div class="flight-card">
         <div class="card-row-airline">
           <div class="airline-logo">${logoHtml}</div>
-          <span class="airline-name">${flightNum}</span>
+          <span class="airline-name">${flightNum}${dbaHtml}</span>
           ${statusPill(f.flightStatus)}
         </div>
 
