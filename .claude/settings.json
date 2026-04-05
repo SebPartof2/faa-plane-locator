@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git commit -m ':*)"
+      "Bash(git commit -m ':*)",
+      "Bash(timeout 15 node -e \" require\\('dotenv'\\).config\\(\\); const SolaceClient = require\\('./src/solace-client'\\); const { parseFixmMessage } = require\\('./src/fixm-parser'\\); const { XMLParser } = require\\('fast-xml-parser'\\); const parser = new XMLParser\\({ ignoreAttributes: false, attributeNamePrefix: '@_', removeNSPrefix: true }\\); const fdps = new SolaceClient\\({ host: process.env.FDPS_HOST, vpn: process.env.FDPS_VPN, username: process.env.FDPS_USERNAME, password: process.env.FDPS_PASSWORD, queue: process.env.FDPS_QUEUE }\\); const sources = new Set\\(\\); let count = 0; fdps.on\\('message', \\(payload\\) => { if \\(typeof payload !== 'string' || count > 200\\) return; const parsed = parser.parse\\(payload\\); const msg = parsed.MessageCollection?.message; const flight = Array.isArray\\(msg\\) ? msg[0]?.flight : msg?.flight; if \\(flight\\) { const src = flight['@_source'] || '?'; const sys = flight['@_system'] || '?'; const centre = flight['@_centre'] || '?'; const key = src + '|' + sys + '|' + centre; if \\(!sources.has\\(key\\)\\) { sources.add\\(key\\); console.log\\('source:', src, 'system:', sys, 'centre:', centre\\); } count++; } }\\); fdps.connect\\(\\); setTimeout\\(\\(\\) => process.exit\\(0\\), 12000\\); \")"
     ]
   }
 }

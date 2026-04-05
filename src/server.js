@@ -142,10 +142,8 @@ smesClient.on('message', (payload) => {
     const tracks = parseSmesMessage(payload);
     if (!tracks) return;
     for (const track of tracks) {
-      // Only use tracks with GUFI that we can match to FDPS
-      if (!track.gufi) continue;
-      // Only use full reports with identity data
-      if (!track.full && !track.callsign) continue;
+      // Only use tracks we can match — need GUFI or callsign
+      if (!track.gufi && !track.callsign) continue;
 
       ingestFlight({
         fdpsGufi: track.gufi,
