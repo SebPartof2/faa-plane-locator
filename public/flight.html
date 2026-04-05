@@ -238,24 +238,79 @@
     .source-tag.tfms { background: #34c75920; color: #248a3d; }
     .source-tag.smes { background: #ff9f0a20; color: #c93400; }
 
-    /* Times grid */
-    .times-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+    /* Timeline */
+    .timeline {
+      position: relative;
+      padding-left: 28px;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 8px;
+      top: 4px;
+      bottom: 4px;
+      width: 2px;
+      background: #e5e5ea;
+      border-radius: 1px;
+    }
+
+    .tl-item {
+      position: relative;
+      padding: 8px 0;
+      display: flex;
+      align-items: center;
       gap: 12px;
     }
 
-    .time-item {
+    .tl-dot {
+      position: absolute;
+      left: -23px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #e5e5ea;
+      border: 2px solid #fff;
+      z-index: 1;
+    }
+
+    .tl-dot.completed { background: #34c759; }
+    .tl-dot.active { background: #007aff; box-shadow: 0 0 0 3px #007aff30; }
+    .tl-dot.future { background: #e5e5ea; }
+    .tl-dot.scheduled { background: #fff; border: 2px solid #d1d1d6; }
+
+    .tl-content {
+      flex: 1;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px 0;
-      border-bottom: 1px solid #f2f2f7;
     }
 
-    .time-item:last-child { border-bottom: none; }
-    .time-item-label { font-size: 13px; color: #8e8e93; }
-    .time-item-value { font-size: 13px; font-weight: 600; }
+    .tl-label {
+      font-size: 14px;
+      color: #1c1c1e;
+      font-weight: 500;
+    }
+
+    .tl-label.dimmed { color: #8e8e93; }
+
+    .tl-time {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1c1c1e;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .tl-time.dimmed {
+      color: #8e8e93;
+      font-weight: 500;
+      font-style: italic;
+    }
+
+    .tl-sublabel {
+      font-size: 11px;
+      color: #8e8e93;
+    }
 
     .debug-src {
       font-size: 9px;
@@ -368,10 +423,10 @@
         </div>
       </div>
 
-      <!-- Times -->
+      <!-- Timeline -->
       <div class="card" id="times-card" style="display:none">
-        <h2>Times</h2>
-        <div class="times-grid" id="times-grid"></div>
+        <h2>Timeline</h2>
+        <div class="timeline" id="timeline"></div>
       </div>
 
       <!-- Route String -->
@@ -596,21 +651,43 @@
         document.getElementById('delay').textContent = '—';
       }
 
-      // Times
-      const times = [
-        ['Scheduled Departure', f.scheduledDep],
-        ['Pushed Back', f.gateOut],
-        ['Took Off', f.wheelsOff],
-        ['Landed', f.wheelsOn],
-        ['Arrived at Gate', f.gateIn],
-        ['Scheduled Arrival', f.scheduledArr],
-      ].filter(([, v]) => v);
+      // Timeline
+      const now = Date.now();
+      const steps = [
+        { label: 'Scheduled', icon: 'scheduled', time: f.scheduledDep, sub: 'Filed departure' },
+        { label: 'Pushed Back', icon: 'gate', time: f.gateOut, sub: 'Left the gate' },
+        { label: 'Took Off', icon: 'takeoff', time: f.wheelsOff, sub: 'Wheels off' },
+        { label: 'Landed', icon: 'landing', time: f.wheelsOn, sub: 'Wheels on' },
+        { label: 'At Gate', icon: 'gate', time: f.gateIn, sub: 'Arrived at gate' },
+      ].filter(s => s.time);
 
-      if (times.length > 0) {
+      if (steps.length > 0) {
+        // Figure out which step is "active" (latest completed)
+        let activeIdx = -1;
+        for (let i = steps.length - 1; i >= 0; i--) {
+          if (new Date(steps[i].time).getTime() <= now) { activeIdx = i; break; }
+        }
+
         document.getElementById('times-card').style.display = 'block';
-        document.getElementById('times-grid').innerHTML = times.map(([label, val]) =>
-          `<div class="time-item"><span class="time-item-label">${label}</span><span class="time-item-value">${fmtTime(val)}</span></div>`
-        ).join('');
+        document.getElementById('timeline').innerHTML = steps.map((s, i) => {
+          const isPast = new Date(s.time).getTime() <= now;
+          const isActive = i === activeIdx;
+          const isFuture = !isPast;
+          const dotCls = s.label === 'Scheduled' ? 'scheduled' : isActive ? 'active' : isPast ? 'completed' : 'future';
+          const labelCls = isFuture ? ' dimmed' : '';
+          const timeCls = isFuture ? ' dimmed' : '';
+
+          return `<div class="tl-item">
+            <div class="tl-dot ${dotCls}"></div>
+            <div class="tl-content">
+              <div>
+                <div class="tl-label${labelCls}">${s.label}</div>
+                <div class="tl-sublabel">${s.sub}</div>
+              </div>
+              <div class="tl-time${timeCls}">${fmtTime(s.time)}</div>
+            </div>
+          </div>`;
+        }).join('');
       }
 
       // Route string
