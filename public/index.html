@@ -450,7 +450,7 @@
           </div>
           <div class="live-item">
             <span class="live-label">Source</span>
-            <span class="live-value">${f.dataSource || '—'}</span>
+            <span class="live-value">${(f.dataSources && f.dataSources.length) ? f.dataSources.join(', ') : '—'}</span>
           </div>
         </div>
       </div>`;

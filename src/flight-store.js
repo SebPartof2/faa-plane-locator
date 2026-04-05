@@ -52,6 +52,15 @@ class FlightStore {
 
     const existing = this.flights.get(key);
     if (existing) {
+      // Accumulate data sources
+      if (plan.dataSource) {
+        if (!existing.dataSources) existing.dataSources = new Set();
+        if (typeof existing.dataSources === 'object' && !(existing.dataSources instanceof Set)) {
+          existing.dataSources = new Set(existing.dataSources);
+        }
+        existing.dataSources.add(plan.dataSource);
+      }
+
       for (const [k, v] of Object.entries(plan)) {
         if (v !== null && v !== undefined) {
           existing[k] = v;
@@ -61,13 +70,21 @@ class FlightStore {
       return existing;
     }
 
+    // New flight — init dataSources set
+    if (plan.dataSource) {
+      plan.dataSources = new Set([plan.dataSource]);
+    }
+
     plan.lastUpdated = Date.now();
     this.flights.set(key, plan);
     return plan;
   }
 
   getAll() {
-    return Array.from(this.flights.values());
+    return Array.from(this.flights.values()).map(f => ({
+      ...f,
+      dataSources: f.dataSources instanceof Set ? [...f.dataSources] : (f.dataSources || []),
+    }));
   }
 
   getStats() {
