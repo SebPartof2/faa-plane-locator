@@ -337,19 +337,15 @@
       // Show card preview
       document.getElementById('card-preview').innerHTML = buildCard(data);
 
-      // Show missing tags
-      const airlineCode = data.airlineCode;
-      const hasAirline = !airlineCode || airlineLookup[airlineCode];
-      const hasOrigin = !data.origin || airportLookup[data.origin];
-      const hasDest = !data.destination || airportLookup[data.destination];
-
+      // Show missing codes with counts
+      const codes = data._codes || {};
       const needs = [];
-      if (!hasAirline) needs.push(`<span class="tag needed">Airline: ${airlineCode}</span>`);
-      if (!hasOrigin) needs.push(`<span class="tag needed">Airport: ${data.origin}</span>`);
-      if (!hasDest) needs.push(`<span class="tag needed">Airport: ${data.destination}</span>`);
+      if (codes.airline) needs.push(`<span class="tag needed">Airline: ${codes.airline.code} (${codes.airline.count} flights)</span>`);
+      if (codes.origin) needs.push(`<span class="tag needed">Airport: ${codes.origin.code} (${codes.origin.count} flights)</span>`);
+      if (codes.dest) needs.push(`<span class="tag needed">Airport: ${codes.dest.code} (${codes.dest.count} flights)</span>`);
 
       document.getElementById('missing-panel').innerHTML = `
-        <h2>Needs <span style="font-size:12px;color:#8e8e93;font-weight:500">(${data._frequency} flights use this code)</span></h2>
+        <h2>Priority: ${data._priority}</h2>
         <div class="tags">${needs.join('')}</div>
         <button class="btn" onclick="loadNext()">Next</button>
         <p class="hint">${data._totalMissingAirlines} missing airlines, ${data._totalMissingAirports} missing airports remaining</p>

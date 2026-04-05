@@ -165,33 +165,68 @@ app.get('/api/codes/missing', (req, res) => {
     }
   }
 
-  // Prioritize: airlines first (sorted by frequency), then airports (sorted by frequency)
-  const sortedAirlines = Object.entries(missingAirlines).sort((a, b) => b[1] - a[1]);
-  const sortedAirports = Object.entries(missingAirports).sort((a, b) => b[1] - a[1]);
-  const topCode = sortedAirlines[0]?.[0] || sortedAirports[0]?.[0];
-
-  if (!topCode) {
+  if (Object.keys(missingAirlines).length === 0 && Object.keys(missingAirports).length === 0) {
     return res.json({ message: 'All codes covered!' });
   }
 
-  const sample = flightsByCode[topCode];
+  // Score each flight by total priority (sum of frequencies of its missing codes)
+  // Airlines weighted 2x since they affect more flights
+  const scored = [];
+  const seen = new Set();
+  for (const f of flights) {
+    if (!f.callsign || /^N\d/.test(f.callsign)) continue;
+
+    const airlineMatch = f.callsign.match(/^([A-Z]{2,})\d/);
+    const airlineCode = airlineMatch ? airlineMatch[1] : null;
+
+    const codes = {};
+    let priority = 0;
+
+    if (airlineCode && missingAirlines[airlineCode]) {
+      codes.airline = { code: airlineCode, count: missingAirlines[airlineCode] };
+      priority += missingAirlines[airlineCode] * 2;
+    }
+    if (f.origin && missingAirports[f.origin]) {
+      codes.origin = { code: f.origin, count: missingAirports[f.origin] };
+      priority += missingAirports[f.origin];
+    }
+    if (f.destination && missingAirports[f.destination]) {
+      codes.dest = { code: f.destination, count: missingAirports[f.destination] };
+      priority += missingAirports[f.destination];
+    }
+
+    if (priority > 0) {
+      // Dedupe by missing code combo
+      const key = [codes.airline?.code, codes.origin?.code, codes.dest?.code].join('|');
+      if (!seen.has(key)) {
+        seen.add(key);
+        scored.push({ flight: f, codes, priority });
+      }
+    }
+  }
+
+  scored.sort((a, b) => b.priority - a.priority);
+  const top = scored[0];
+  if (!top) return res.json({ message: 'All codes covered!' });
+
+  const f = top.flight;
   res.json({
-    callsign: sample.callsign,
-    airlineCode: sample.callsign.match(/^([A-Z]+)/)?.[1] || null,
-    origin: sample.origin || null,
-    destination: sample.destination || null,
-    aircraftType: sample.aircraftType || null,
-    flightStatus: sample.flightStatus || null,
-    actualAltitude: sample.actualAltitude || null,
-    altitude: sample.altitude || null,
-    groundSpeed: sample.groundSpeed || null,
-    airspeed: sample.airspeed || null,
-    heading: sample.heading || null,
-    centre: sample.centre || null,
-    _missingCode: topCode,
-    _frequency: sortedAirlines[0]?.[0] === topCode ? sortedAirlines[0][1] : sortedAirports[0][1],
-    _totalMissingAirlines: sortedAirlines.length,
-    _totalMissingAirports: sortedAirports.length,
+    callsign: f.callsign,
+    airlineCode: f.callsign.match(/^([A-Z]+)/)?.[1] || null,
+    origin: f.origin || null,
+    destination: f.destination || null,
+    aircraftType: f.aircraftType || null,
+    flightStatus: f.flightStatus || null,
+    actualAltitude: f.actualAltitude || null,
+    altitude: f.altitude || null,
+    groundSpeed: f.groundSpeed || null,
+    airspeed: f.airspeed || null,
+    heading: f.heading || null,
+    centre: f.centre || null,
+    _codes: top.codes,
+    _priority: top.priority,
+    _totalMissingAirlines: Object.keys(missingAirlines).length,
+    _totalMissingAirports: Object.keys(missingAirports).length,
   });
 });
 
