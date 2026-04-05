@@ -249,6 +249,17 @@
       font-size: 14px;
     }
 
+    .surface-badge {
+      font-size: 12px;
+      font-weight: 600;
+      color: #007aff;
+      background: #007aff15;
+      padding: 4px 10px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+      display: inline-block;
+    }
+
     /* Row 4: Aircraft Type */
     .card-aircraft {
       font-size: 13px;
@@ -561,6 +572,8 @@
             ${f.eta ? `<div class="time-box${f.etaType !== 'ACTUAL' ? ' estimated' : ''}"><span class="time-type">${f.etaType === 'ACTUAL' ? 'ARR ' : 'ETA '}</span>${fmtTime(f.eta)}</div>` : ''}
           </div>
         </div>
+
+        ${f.surfaceAirport ? `<div class="surface-badge">On Ground: ${getAirportName(f.surfaceAirport) || f.surfaceAirport}</div>` : ''}
 
         <div class="card-aircraft">${f.aircraftType || '—'}${(() => {
           const depDelay = getDelay(f.scheduledDep, f.etd);

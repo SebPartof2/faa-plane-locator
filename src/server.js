@@ -7,6 +7,7 @@ const { WebSocketServer } = require('ws');
 const SolaceClient = require('./solace-client');
 const { parseFixmMessage } = require('./fixm-parser');
 const { parseTfmsMessage } = require('./tfms-parser');
+const { parseSmesMessage } = require('./smes-parser');
 const FlightStore = require('./flight-store');
 
 const PORT = process.env.PORT || 3000;
@@ -122,6 +123,47 @@ tfmsClient.on('message', (payload) => {
     }
   } catch (err) {
     console.error('[TFMS] Parse error:', err.message);
+  }
+});
+
+// --- SMES Solace client ---
+const smesClient = new SolaceClient({
+  host: process.env.SOLACE_HOST,
+  vpn: process.env.SOLACE_VPN,
+  username: process.env.SOLACE_USERNAME,
+  password: process.env.SOLACE_PASSWORD,
+  queue: process.env.SOLACE_QUEUE,
+});
+
+let smesMsgCount = 0;
+
+smesClient.on('message', (payload) => {
+  try {
+    const tracks = parseSmesMessage(payload);
+    if (!tracks) return;
+    for (const track of tracks) {
+      // Only use tracks with GUFI that we can match to FDPS
+      if (!track.gufi) continue;
+      // Only use full reports with identity data
+      if (!track.full && !track.callsign) continue;
+
+      ingestFlight({
+        fdpsGufi: track.gufi,
+        callsign: track.callsign || null,
+        aircraftType: track.aircraftType || null,
+        surfaceAirport: track.airport || null,
+        surfaceLat: track.lat,
+        surfaceLon: track.lon,
+        surfaceSpeed: track.speed,
+        surfaceHeading: track.heading,
+        surfaceEvent: track.event || null,
+        surfaceRunway: track.runway || null,
+        dataSource: track.airport ? `SMES ${track.airport}` : 'SMES',
+      });
+      smesMsgCount++;
+    }
+  } catch (err) {
+    console.error('[SMES] Parse error:', err.message);
   }
 });
 
@@ -366,7 +408,7 @@ app.get('/api/health', (req, res) => {
     status: 'ok',
     uptime: Math.floor(process.uptime()),
     memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
-    connections: { fdps: fdpsClient.connected, tfms: tfmsClient.connected },
+    connections: { fdps: fdpsClient.connected, tfms: tfmsClient.connected, smes: smesClient.connected },
     flights: { total: flights.length, statuses },
     coverage: {
       position: hasPos,
@@ -390,9 +432,10 @@ app.get('/health', (req, res) => {
 // --- Stats logging ---
 setInterval(() => {
   const stats = flightStore.getStats();
-  console.log(`[Stats] Flights: ${stats.total} (Active: ${stats.active}, Proposed: ${stats.proposed}) | FDPS/10s: ${fdpsMsgCount} | TFMS/10s: ${tfmsMsgCount}`);
+  console.log(`[Stats] Flights: ${stats.total} (Active: ${stats.active}, Proposed: ${stats.proposed}) | FDPS/10s: ${fdpsMsgCount} | TFMS/10s: ${tfmsMsgCount} | SMES/10s: ${smesMsgCount}`);
   fdpsMsgCount = 0;
   tfmsMsgCount = 0;
+  smesMsgCount = 0;
 }, 10_000);
 
 // --- Start ---
@@ -400,6 +443,7 @@ server.listen(PORT, () => {
   console.log(`[Server] Listening on http://localhost:${PORT}`);
   fdpsClient.connect();
   tfmsClient.connect();
+  smesClient.connect();
 });
 
 // --- Graceful shutdown ---
@@ -407,6 +451,7 @@ function shutdown() {
   console.log('\nShutting down...');
   fdpsClient.disconnect();
   tfmsClient.disconnect();
+  smesClient.disconnect();
   flightStore.stop();
   server.close();
   process.exit(0);
