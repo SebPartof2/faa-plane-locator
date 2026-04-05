@@ -125,6 +125,48 @@ tfmsClient.on('message', (payload) => {
   }
 });
 
+// --- Paginated flights API ---
+app.get('/api/flights', (req, res) => {
+  const status = req.query.status || 'ACTIVE';
+  const search = (req.query.search || '').toUpperCase();
+  const page = parseInt(req.query.page) || 0;
+  const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+
+  let flights = flightStore.getAll();
+
+  // Filter by status
+  if (status !== 'all') {
+    flights = flights.filter(f => f.flightStatus === status);
+  }
+
+  // Search
+  if (search) {
+    flights = flights.filter(f =>
+      (f.callsign || '').includes(search) ||
+      (f.airline || '').includes(search) ||
+      (f.origin || '').includes(search) ||
+      (f.destination || '').includes(search) ||
+      (f.aircraftType || '').includes(search) ||
+      (f.centre || '').includes(search)
+    );
+  }
+
+  // Sort by callsign
+  flights.sort((a, b) => (a.callsign || '').localeCompare(b.callsign || ''));
+
+  const total = flights.length;
+  const paged = flights.slice(page * limit, (page + 1) * limit);
+
+  res.json({
+    flights: paged,
+    total,
+    page,
+    limit,
+    pages: Math.ceil(total / limit),
+    stats: flightStore.getStats(),
+  });
+});
+
 // --- Missing codes endpoint ---
 app.get('/codes', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'codes.html'));

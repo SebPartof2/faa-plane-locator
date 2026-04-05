@@ -263,7 +263,6 @@
     <h1>Flights</h1>
     <span class="stat"><span class="status-dot" id="status-dot"></span></span>
     <span class="stat" id="stat-total">Flights: <b>0</b></span>
-    <span class="stat" id="stat-rate">0 msg/s</span>
     <div id="controls">
       <button class="filter-btn" data-filter="all">All</button>
       <button class="filter-btn active" data-filter="ACTIVE">Active</button>
@@ -322,13 +321,12 @@
     }
 
     // --- State ---
-    let flights = new Map();
-    let sortCol = 'callsign';
-    let sortAsc = true;
+    let currentFlights = [];
     let filterStatus = 'ACTIVE';
     let searchQuery = '';
-    let msgCount = 0;
-    let lastMsgCount = 0;
+    let currentPage = 0;
+    let totalPages = 0;
+    let totalFlights = 0;
 
     const container = document.getElementById('card-container');
     const emptyState = document.getElementById('empty-state');
@@ -340,43 +338,48 @@
         document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         filterStatus = btn.dataset.filter;
-        renderCards();
+        currentPage = 0;
+        fetchFlights();
       });
     });
 
+    let searchTimeout;
     searchInput.addEventListener('input', (e) => {
-      searchQuery = e.target.value.toUpperCase();
-      renderCards();
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        searchQuery = e.target.value;
+        currentPage = 0;
+        fetchFlights();
+      }, 300);
     });
 
-    // --- Helpers ---
-    function getFiltered() {
-      let list = Array.from(flights.values());
+    // --- Fetch from server ---
+    async function fetchFlights() {
+      try {
+        const params = new URLSearchParams({
+          status: filterStatus,
+          search: searchQuery,
+          page: currentPage,
+          limit: 50,
+        });
+        const res = await fetch(`/api/flights?${params}`);
+        const data = await res.json();
 
-      if (filterStatus !== 'all') {
-        list = list.filter(f => f.flightStatus === filterStatus);
+        currentFlights = data.flights;
+        totalPages = data.pages;
+        totalFlights = data.total;
+
+        document.getElementById('status-dot').classList.add('connected');
+        updateStats(data.stats);
+        renderCards();
+      } catch (e) {
+        document.getElementById('status-dot').classList.remove('connected');
       }
+    }
 
-      if (searchQuery) {
-        list = list.filter(f =>
-          (f.callsign || '').includes(searchQuery) ||
-          (f.airline || '').includes(searchQuery) ||
-          (f.origin || '').includes(searchQuery) ||
-          (f.destination || '').includes(searchQuery) ||
-          (f.aircraftType || '').includes(searchQuery) ||
-          (getAirportName(f.origin) || '').toUpperCase().includes(searchQuery) ||
-          (getAirportName(f.destination) || '').toUpperCase().includes(searchQuery) ||
-          (getAirlineInfo(f.callsign)?.name || '').toUpperCase().includes(searchQuery)
-        );
-      }
-
-      list.sort((a, b) => {
-        const va = a.callsign || '';
-        const vb = b.callsign || '';
-        return va.localeCompare(vb);
-      });
-
-      return list;
+    function updateStats(stats) {
+      if (!stats) return;
+      document.getElementById('stat-total').innerHTML = `Showing: <b>${totalFlights}</b> of ${stats.total}`;
     }
 
     function statusPill(status) {
@@ -455,65 +458,52 @@
 
     // --- Render ---
     function renderCards() {
-      const filtered = getFiltered();
-
-      if (filtered.length === 0) {
+      if (currentFlights.length === 0) {
         container.innerHTML = '';
         emptyState.style.display = 'block';
-        emptyState.textContent = flights.size === 0
-          ? 'Connecting to FAA SWIM...'
+        emptyState.textContent = totalFlights === 0
+          ? 'Loading flights...'
           : 'No flights match your filter.';
         return;
       }
 
       emptyState.style.display = 'none';
-      container.innerHTML = filtered.map(buildCard).join('');
-      document.getElementById('stat-total').innerHTML = `Flights: <b>${filtered.length}</b>`;
+
+      let html = currentFlights.map(buildCard).join('');
+
+      // Pagination
+      if (totalPages > 1) {
+        html += `<div style="grid-column: 1/-1; display:flex; justify-content:center; gap:8px; padding:16px 0;">
+          ${currentPage > 0 ? `<button class="filter-btn" onclick="prevPage()">Previous</button>` : ''}
+          <span style="padding:6px 14px; font-size:13px; color:#8e8e93;">Page ${currentPage + 1} of ${totalPages}</span>
+          ${currentPage < totalPages - 1 ? `<button class="filter-btn" onclick="nextPage()">Next</button>` : ''}
+        </div>`;
+      }
+
+      container.innerHTML = html;
     }
 
-    // --- Stats ---
-    setInterval(() => {
-      const rate = msgCount - lastMsgCount;
-      lastMsgCount = msgCount;
-      document.getElementById('stat-rate').textContent = `${rate} msg/s`;
-    }, 1000);
-
-    // --- WebSocket ---
-    function connect() {
-      const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
-      const ws = new WebSocket(`${protocol}://${location.host}/ws`);
-
-      ws.onopen = () => {
-        document.getElementById('status-dot').classList.add('connected');
-      };
-
-      ws.onclose = () => {
-        document.getElementById('status-dot').classList.remove('connected');
-        setTimeout(connect, 3000);
-      };
-
-      ws.onerror = () => ws.close();
-
-      ws.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-
-        if (data.type === 'snapshot') {
-          flights.clear();
-          for (const f of data.flights) {
-            flights.set(f.fdpsGufi || f.gufi, f);
-          }
-          renderCards();
-        } else if (data.type === 'batch') {
-          for (const f of data.flights) {
-            flights.set(f.fdpsGufi || f.gufi, f);
-            msgCount++;
-          }
-          renderCards();
-        }
-      };
+    function nextPage() {
+      if (currentPage < totalPages - 1) {
+        currentPage++;
+        fetchFlights();
+        window.scrollTo(0, 0);
+      }
     }
 
-    connect();
+    function prevPage() {
+      if (currentPage > 0) {
+        currentPage--;
+        fetchFlights();
+        window.scrollTo(0, 0);
+      }
+    }
+
+    // --- Auto-refresh every 5s ---
+    setInterval(fetchFlights, 5000);
+
+    // --- Initial load ---
+    fetchFlights();
   </script>
 </body>
 </html>
