@@ -309,12 +309,12 @@ app.get('/api/flights', (req, res) => {
   // Search
   if (search) {
     flights = flights.filter(f =>
-      (f.callsign || '').includes(search) ||
-      (f.airline || '').includes(search) ||
-      (f.origin || '').includes(search) ||
-      (f.destination || '').includes(search) ||
-      (f.aircraftType || '').includes(search) ||
-      (f.centre || '').includes(search)
+      String(f.callsign || '').includes(search) ||
+      String(f.airline || '').includes(search) ||
+      String(f.origin || '').includes(search) ||
+      String(f.destination || '').includes(search) ||
+      String(f.aircraftType || '').includes(search) ||
+      String(f.centre || '').includes(search)
     );
   }
 
