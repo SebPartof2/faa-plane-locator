@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flight Detail</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, 'SF Pro Display', system-ui, sans-serif;
+      background: #f2f2f7;
+      color: #1c1c1e;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #header {
+      background: #fff;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid #e5e5ea;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    #header a { color: #007aff; text-decoration: none; font-size: 14px; }
+    #header a:hover { text-decoration: underline; }
+
+    .header-airline {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-logo {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .header-logo img { width: 100%; height: 100%; object-fit: contain; }
+
+    #header-title { font-size: 18px; font-weight: 700; }
+
+    .status-pill {
+      padding: 3px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .pill-active { background: #34c75920; color: #248a3d; }
+    .pill-proposed { background: #ff9f0a20; color: #c93400; }
+    .pill-planned { background: #007aff20; color: #0056cc; }
+    .pill-dropped { background: #ff3b3020; color: #d70015; }
+    .pill-completed { background: #8e8e9320; color: #636366; }
+
+    .content {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      margin-bottom: 12px;
+    }
+
+    .card h2 {
+      font-size: 13px;
+      font-weight: 600;
+      color: #8e8e93;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 14px;
+    }
+
+    /* Route card */
+    .route-display {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .route-airport { flex: 1; }
+
+    .route-airport-name {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1c1c1e;
+      line-height: 1.2;
+    }
+
+    .route-airport-icao {
+      font-size: 13px;
+      color: #8e8e93;
+      font-weight: 500;
+      margin-top: 2px;
+    }
+
+    .time-box {
+      margin-top: 8px;
+      padding: 4px 10px;
+      background: #f2f2f7;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #1c1c1e;
+      display: inline-block;
+    }
+
+    .time-box.estimated {
+      font-style: italic;
+      font-weight: 500;
+      color: #8e8e93;
+    }
+
+    .time-box .time-type {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .route-arrow-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding-top: 8px;
+      flex-shrink: 0;
+    }
+
+    .route-arrow-line {
+      width: 50px;
+      height: 1px;
+      background: #d1d1d6;
+      position: relative;
+    }
+
+    .route-arrow-line::after {
+      content: '';
+      position: absolute;
+      right: -1px;
+      top: -3px;
+      border-left: 5px solid #d1d1d6;
+      border-top: 3px solid transparent;
+      border-bottom: 3px solid transparent;
+    }
+
+    /* Map */
+    #map {
+      width: 100%;
+      height: 280px;
+      border-radius: 12px;
+    }
+
+    .map-placeholder {
+      width: 100%;
+      height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #8e8e93;
+      font-size: 13px;
+      background: #f2f2f7;
+      border-radius: 12px;
+    }
+
+    /* Data grid */
+    .data-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+    }
+
+    .data-item-label {
+      font-size: 10px;
+      color: #8e8e93;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+      margin-bottom: 2px;
+    }
+
+    .data-item-value {
+      font-size: 17px;
+      font-weight: 600;
+      color: #1c1c1e;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .data-item-value.small { font-size: 14px; }
+    .data-item-value.mono { font-size: 12px; color: #8e8e93; word-break: break-all; }
+
+    /* Surface badge */
+    .surface-badge {
+      font-size: 13px;
+      font-weight: 600;
+      color: #007aff;
+      background: #007aff15;
+      padding: 6px 12px;
+      border-radius: 8px;
+      display: inline-block;
+      margin-bottom: 12px;
+    }
+
+    /* Delay */
+    .delay-on-time { color: #34c759; }
+    .delay-late { color: #ff3b30; }
+
+    /* Route string */
+    .route-string {
+      background: #f2f2f7;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 13px;
+      color: #636366;
+      line-height: 1.6;
+      word-break: break-all;
+      font-family: 'SF Mono', 'Consolas', monospace;
+    }
+
+    /* Data sources */
+    .source-tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .source-tag {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: #f2f2f7;
+      color: #636366;
+    }
+
+    .source-tag.eram { background: #007aff15; color: #007aff; }
+    .source-tag.tfms { background: #34c75920; color: #248a3d; }
+    .source-tag.smes { background: #ff9f0a20; color: #c93400; }
+
+    /* Times grid */
+    .times-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .time-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #f2f2f7;
+    }
+
+    .time-item:last-child { border-bottom: none; }
+    .time-item-label { font-size: 13px; color: #8e8e93; }
+    .time-item-value { font-size: 13px; font-weight: 600; }
+
+    #not-found {
+      text-align: center;
+      padding: 80px 20px;
+      color: #8e8e93;
+      font-size: 15px;
+    }
+
+    .track-label {
+      background: none !important;
+      border: none !important;
+      font-size: 12px;
+      font-weight: bold;
+      color: #007aff;
+      white-space: nowrap;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body>
+  <div id="header">
+    <a href="/">&larr; Flights</a>
+    <div class="header-airline">
+      <div class="header-logo" id="header-logo"></div>
+      <span id="header-title">Loading...</span>
+    </div>
+    <span class="status-pill" id="header-status"></span>
+  </div>
+
+  <div class="content">
+    <div id="not-found" style="display:none">Flight not found</div>
+    <div id="detail" style="display:none">
+
+      <!-- Route -->
+      <div class="card">
+        <div class="route-display">
+          <div class="route-airport">
+            <div class="route-airport-name" id="origin-name">—</div>
+            <div class="route-airport-icao" id="origin-icao"></div>
+            <div id="dep-time"></div>
+          </div>
+          <div class="route-arrow-block">
+            <div class="route-arrow-line"></div>
+          </div>
+          <div class="route-airport" style="text-align:right">
+            <div class="route-airport-name" id="dest-name">—</div>
+            <div class="route-airport-icao" id="dest-icao"></div>
+            <div id="arr-time"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Surface -->
+      <div id="surface-card" class="card" style="display:none">
+        <div class="surface-badge" id="surface-text"></div>
+      </div>
+
+      <!-- Map -->
+      <div class="card">
+        <h2>Position</h2>
+        <div id="map" style="display:none"></div>
+        <div class="map-placeholder" id="map-placeholder">Waiting for position data...</div>
+      </div>
+
+      <!-- Live Data -->
+      <div class="card">
+        <h2>Live Data</h2>
+        <div class="data-grid">
+          <div><div class="data-item-label">Altitude</div><div class="data-item-value" id="altitude">—</div></div>
+          <div><div class="data-item-label">Ground Speed</div><div class="data-item-value" id="speed">—</div></div>
+          <div><div class="data-item-label">Heading</div><div class="data-item-value" id="heading">—</div></div>
+        </div>
+      </div>
+
+      <!-- Flight Info -->
+      <div class="card">
+        <h2>Flight Info</h2>
+        <div class="data-grid">
+          <div><div class="data-item-label">Aircraft</div><div class="data-item-value" id="aircraft-type">—</div></div>
+          <div><div class="data-item-label">Airline</div><div class="data-item-value small" id="airline">—</div></div>
+          <div><div class="data-item-label">Category</div><div class="data-item-value small" id="category">—</div></div>
+          <div><div class="data-item-label">Delay</div><div class="data-item-value" id="delay">—</div></div>
+          <div><div class="data-item-label">Centre</div><div class="data-item-value small" id="centre">—</div></div>
+          <div><div class="data-item-label">Sector</div><div class="data-item-value small" id="sector">—</div></div>
+        </div>
+      </div>
+
+      <!-- Times -->
+      <div class="card" id="times-card" style="display:none">
+        <h2>Times</h2>
+        <div class="times-grid" id="times-grid"></div>
+      </div>
+
+      <!-- Route String -->
+      <div class="card" id="route-card" style="display:none">
+        <h2>Route</h2>
+        <div class="route-string" id="route-string"></div>
+      </div>
+
+      <!-- Sources & IDs -->
+      <div class="card">
+        <h2>Data Sources</h2>
+        <div class="source-tags" id="sources"></div>
+      </div>
+
+      <div class="card">
+        <h2>Identifiers</h2>
+        <div class="data-grid">
+          <div><div class="data-item-label">GUFI</div><div class="data-item-value mono" id="gufi">—</div></div>
+          <div><div class="data-item-label">FDPS GUFI</div><div class="data-item-value mono" id="fdps-gufi">—</div></div>
+          <div><div class="data-item-label">Computer ID</div><div class="data-item-value mono" id="computer-id">—</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const gufi = new URLSearchParams(location.search).get('id');
+
+    let airportLookup = {};
+    let airlineLookup = {};
+
+    const dbaNames = { DAL: 'Delta Connection', UAL: 'United Express', AAL: 'American Eagle' };
+
+    function getAirportName(icao) {
+      return airportLookup[icao]?.name || null;
+    }
+
+    function getAirlineInfo(code) {
+      return airlineLookup[code] || null;
+    }
+
+    function fmtTime(iso) {
+      if (!iso) return '';
+      return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function getDelay(scheduled, actual) {
+      if (!scheduled || !actual) return null;
+      return Math.round((new Date(actual) - new Date(scheduled)) / 60000);
+    }
+
+    // --- Map ---
+    let map = null, marker = null, labelMarker = null, trailLine = null;
+    let trailCoords = [];
+
+    function createPlaneIcon(heading) {
+      return L.divIcon({
+        className: '',
+        html: `<svg width="28" height="28" viewBox="0 0 24 24" style="transform:rotate(${heading || 0}deg)">
+          <path d="M12 2 L14 9 L21 12 L14 13 L14 20 L12 18 L10 20 L10 13 L3 12 L10 9 Z" fill="#007aff" stroke="#0056cc" stroke-width="0.5"/>
+        </svg>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+      });
+    }
+
+    function updateMap(f) {
+      if (f.lat == null || f.lon == null) return;
+
+      document.getElementById('map').style.display = 'block';
+      document.getElementById('map-placeholder').style.display = 'none';
+
+      if (!map) {
+        map = L.map('map').setView([f.lat, f.lon], 7);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+          attribution: '&copy; OpenStreetMap &copy; CARTO',
+          maxZoom: 18,
+        }).addTo(map);
+        trailLine = L.polyline([], { color: '#007aff', weight: 2, opacity: 0.4 }).addTo(map);
+      }
+
+      const pos = [f.lat, f.lon];
+
+      if (marker) {
+        marker.setLatLng(pos);
+        marker.setIcon(createPlaneIcon(f.heading));
+      } else {
+        marker = L.marker(pos, { icon: createPlaneIcon(f.heading) }).addTo(map);
+      }
+
+      const alt = f.actualAltitude || f.altitude;
+      const labelIcon = L.divIcon({
+        className: 'track-label',
+        html: `${f.callsign || '?'} ${alt ? Math.round(alt / 100) : ''}`,
+        iconSize: [100, 14],
+        iconAnchor: [-10, 7],
+      });
+
+      if (labelMarker) {
+        labelMarker.setLatLng(pos);
+        labelMarker.setIcon(labelIcon);
+      } else {
+        labelMarker = L.marker(pos, { icon: labelIcon, interactive: false }).addTo(map);
+      }
+
+      trailCoords.push(pos);
+      if (trailCoords.length > 300) trailCoords.shift();
+      trailLine.setLatLngs(trailCoords);
+
+      map.panTo(pos, { animate: true, duration: 0.5 });
+    }
+
+    // --- Populate ---
+    function populate(f) {
+      document.getElementById('detail').style.display = 'block';
+      document.getElementById('not-found').style.display = 'none';
+
+      // Header
+      const callMatch = (f.callsign || '').match(/^([A-Z]+)(\d+.*)$/);
+      const airlineCode = callMatch ? callMatch[1] : null;
+      const info = airlineCode ? getAirlineInfo(airlineCode) : null;
+      const majorInfo = f.majorAirline ? getAirlineInfo(f.majorAirline) : null;
+      const displayLogo = (f.majorAirline !== f.airline && majorInfo?.logo) || info?.logo;
+
+      let titleText = f.callsign || '—';
+      if (callMatch) {
+        if (f.majorAirline && f.majorAirline !== f.airline) {
+          const brandedName = dbaNames[f.majorAirline] || majorInfo?.short || majorInfo?.name || f.majorAirline;
+          titleText = `${brandedName} ${callMatch[2]} (${f.callsign})`;
+        } else {
+          const shortName = info?.short || info?.name || callMatch[1];
+          titleText = `${shortName} ${callMatch[2]} (${f.callsign})`;
+        }
+      }
+
+      document.getElementById('header-title').textContent = titleText;
+      document.getElementById('header-logo').innerHTML = displayLogo
+        ? `<img src="${displayLogo}">` : '';
+      document.title = `${f.callsign || 'Flight'} — FAA Flight Data`;
+
+      const statusEl = document.getElementById('header-status');
+      statusEl.textContent = f.flightStatus || '';
+      statusEl.className = 'status-pill ' + ({
+        ACTIVE: 'pill-active', PROPOSED: 'pill-proposed',
+        PLANNED: 'pill-planned', DROPPED: 'pill-dropped',
+        COMPLETED: 'pill-completed'
+      }[f.flightStatus] || '');
+
+      // Route
+      document.getElementById('origin-name').textContent = getAirportName(f.origin) || f.origin || '—';
+      document.getElementById('origin-icao').textContent = f.origin || '';
+      document.getElementById('dest-name').textContent = getAirportName(f.destination) || f.destination || '—';
+      document.getElementById('dest-icao').textContent = f.destination || '';
+
+      // ETD/ETA
+      document.getElementById('dep-time').innerHTML = f.etd
+        ? `<div class="time-box${f.etdType !== 'ACTUAL' ? ' estimated' : ''}"><span class="time-type">${f.etdType === 'ACTUAL' ? 'DEP ' : 'ETD '}</span>${fmtTime(f.etd)}</div>` : '';
+      document.getElementById('arr-time').innerHTML = f.eta
+        ? `<div class="time-box${f.etaType !== 'ACTUAL' ? ' estimated' : ''}"><span class="time-type">${f.etaType === 'ACTUAL' ? 'ARR ' : 'ETA '}</span>${fmtTime(f.eta)}</div>` : '';
+
+      // Surface
+      if (f.surfaceAirport) {
+        document.getElementById('surface-card').style.display = 'block';
+        document.getElementById('surface-text').textContent = `On Ground: ${getAirportName(f.surfaceAirport) || f.surfaceAirport}`;
+      }
+
+      // Live data
+      const alt = f.actualAltitude || f.altitude;
+      document.getElementById('altitude').textContent = alt != null ? Math.round(alt).toLocaleString() + "'" : '—';
+      document.getElementById('speed').textContent = (f.groundSpeed || f.airspeed) != null ? Math.round(f.groundSpeed || f.airspeed) + ' kts' : '—';
+      document.getElementById('heading').textContent = f.heading != null ? Math.round(f.heading) + '\u00B0' : '—';
+
+      // Flight info
+      document.getElementById('aircraft-type').textContent = f.aircraftType || '—';
+      document.getElementById('airline').textContent = info?.name || f.airline || '—';
+      document.getElementById('category').textContent = [f.aircraftCategory, f.userCategory].filter(Boolean).join(' / ') || '—';
+      document.getElementById('centre').textContent = f.centre || '—';
+      document.getElementById('sector').textContent = f.sector || '—';
+
+      // Delay
+      const depDelay = getDelay(f.scheduledDep, f.etd);
+      const arrDelay = getDelay(f.scheduledArr, f.eta);
+      const delay = arrDelay !== null ? arrDelay : depDelay;
+      if (delay !== null) {
+        if (delay <= 0) {
+          document.getElementById('delay').innerHTML = '<span class="delay-on-time">On Time</span>';
+        } else if (delay < 60) {
+          document.getElementById('delay').innerHTML = `<span class="delay-late">+${delay}m</span>`;
+        } else {
+          const h = Math.floor(delay / 60), m = delay % 60;
+          document.getElementById('delay').innerHTML = `<span class="delay-late">+${h}h${m > 0 ? m + 'm' : ''}</span>`;
+        }
+      } else {
+        document.getElementById('delay').textContent = '—';
+      }
+
+      // Times
+      const times = [
+        ['Gate Out', f.gateOut], ['Wheels Off', f.wheelsOff],
+        ['Wheels On', f.wheelsOn], ['Gate In', f.gateIn],
+        ['Scheduled Dep', f.scheduledDep], ['Scheduled Arr', f.scheduledArr],
+      ].filter(([, v]) => v);
+
+      if (times.length > 0) {
+        document.getElementById('times-card').style.display = 'block';
+        document.getElementById('times-grid').innerHTML = times.map(([label, val]) =>
+          `<div class="time-item"><span class="time-item-label">${label}</span><span class="time-item-value">${fmtTime(val)}</span></div>`
+        ).join('');
+      }
+
+      // Route string
+      if (f.route) {
+        document.getElementById('route-card').style.display = 'block';
+        document.getElementById('route-string').textContent = f.route;
+      }
+
+      // Sources
+      const sources = f.dataSources || [];
+      document.getElementById('sources').innerHTML = sources.map(s => {
+        const cls = s.startsWith('ERAM') ? 'eram' : s.startsWith('TFMS') ? 'tfms' : s.startsWith('SMES') ? 'smes' : '';
+        return `<span class="source-tag ${cls}">${s}</span>`;
+      }).join('');
+
+      // IDs
+      document.getElementById('gufi').textContent = f.gufi || '—';
+      document.getElementById('fdps-gufi').textContent = f.fdpsGufi || '—';
+      document.getElementById('computer-id').textContent = f.computerId || '—';
+
+      updateMap(f);
+    }
+
+    // --- Poll ---
+    async function refresh() {
+      try {
+        const res = await fetch(`/api/flights/${encodeURIComponent(gufi)}`);
+        if (res.status === 404) {
+          document.getElementById('not-found').style.display = 'block';
+          return;
+        }
+        const f = await res.json();
+        populate(f);
+      } catch (e) { /* retry next cycle */ }
+    }
+
+    // --- Init ---
+    async function init() {
+      const [airports, airlines] = await Promise.all([
+        fetch('/data/airports.json').then(r => r.json()),
+        fetch('/data/airlines.json').then(r => r.json()),
+      ]);
+      airportLookup = airports;
+      airlineLookup = airlines;
+
+      if (gufi) {
+        refresh();
+        setInterval(refresh, 5000);
+      } else {
+        document.getElementById('not-found').style.display = 'block';
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

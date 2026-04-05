@@ -200,6 +200,14 @@ app.get('/api/airlines', (req, res) => {
   res.json(airlines);
 });
 
+// --- Flight detail API ---
+app.get('/api/flights/:gufi', (req, res) => {
+  const flights = flightStore.getAll();
+  const flight = flights.find(f => (f.fdpsGufi || f.gufi) === req.params.gufi);
+  if (!flight) return res.status(404).json({ error: 'Flight not found' });
+  res.json(flight);
+});
+
 // --- Paginated flights API ---
 app.get('/api/flights', (req, res) => {
   const status = req.query.status || 'ACTIVE';
