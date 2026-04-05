@@ -304,19 +304,8 @@
       airportLookup = airports;
       airlineLookup = airlines;
 
-      // Populate airline dropdown
-      const select = document.getElementById('airline-filter');
-      const sorted = Object.entries(airlines)
-        .map(([code, info]) => ({ code, name: info.short || info.name }))
-        .sort((a, b) => a.name.localeCompare(b.name));
-      for (const { code, name } of sorted) {
-        const opt = document.createElement('option');
-        opt.value = code;
-        opt.textContent = name;
-        select.appendChild(opt);
-      }
-
       fetchFlights();
+      loadAirlines();
     });
 
     function getAirportName(icao) {
@@ -389,6 +378,26 @@
     });
 
     // --- Fetch from server ---
+    async function loadAirlines() {
+      try {
+        const res = await fetch('/api/airlines');
+        const airlines = await res.json();
+        const select = document.getElementById('airline-filter');
+        const current = select.value;
+        select.innerHTML = '<option value="">All Airlines</option>';
+        for (const a of airlines) {
+          const opt = document.createElement('option');
+          opt.value = a.code;
+          opt.textContent = a.name ? `${a.name} (${a.count})` : `${a.code} (${a.count})`;
+          select.appendChild(opt);
+        }
+        select.value = current;
+      } catch (e) { /* ignore */ }
+    }
+
+    // Refresh airline list every 30s
+    setInterval(loadAirlines, 30000);
+
     async function fetchFlights() {
       try {
         const params = new URLSearchParams({

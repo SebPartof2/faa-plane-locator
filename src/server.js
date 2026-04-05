@@ -125,6 +125,39 @@ tfmsClient.on('message', (payload) => {
   }
 });
 
+// --- Active airlines API ---
+app.get('/api/airlines', (req, res) => {
+  const flights = flightStore.getAll();
+  const counts = {}; // code -> count
+
+  let airlineLookup = {};
+  try {
+    airlineLookup = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'public', 'data', 'airlines.json'), 'utf-8'));
+  } catch (e) { /* ignore */ }
+
+  for (const f of flights) {
+    if (!f.callsign || /^N\d/.test(f.callsign)) continue;
+    const match = f.callsign.match(/^([A-Z]{2,})\d/);
+    if (match) {
+      counts[match[1]] = (counts[match[1]] || 0) + 1;
+    }
+  }
+
+  const airlines = Object.entries(counts)
+    .map(([code, count]) => {
+      const info = airlineLookup[code];
+      return {
+        code,
+        name: info?.short || info?.name || null,
+        count,
+        known: !!info,
+      };
+    })
+    .sort((a, b) => b.count - a.count);
+
+  res.json(airlines);
+});
+
 // --- Paginated flights API ---
 app.get('/api/flights', (req, res) => {
   const status = req.query.status || 'ACTIVE';
