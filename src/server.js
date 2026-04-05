@@ -8,7 +8,9 @@ const SolaceClient = require('./solace-client');
 const { parseFixmMessage } = require('./fixm-parser');
 const { parseTfmsMessage } = require('./tfms-parser');
 const { parseSmesMessage } = require('./smes-parser');
+const { parseFlowMessage } = require('./flow-parser');
 const FlightStore = require('./flight-store');
+const FlowStore = require('./flow-store');
 
 const PORT = process.env.PORT || 3000;
 
@@ -17,8 +19,9 @@ const app = express();
 const server = http.createServer(app);
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
-// --- Flight store ---
+// --- Stores ---
 const flightStore = new FlightStore();
+const flowStore = new FlowStore();
 
 // --- WebSocket server ---
 const wss = new WebSocketServer({ server, path: '/ws' });
@@ -115,11 +118,21 @@ let tfmsMsgCount = 0;
 
 tfmsClient.on('message', (payload) => {
   try {
+    // Try flight data first
     const flights = parseTfmsMessage(payload);
-    if (!flights) return;
-    for (const flight of flights) {
-      ingestFlight(flight);
-      tfmsMsgCount++;
+    if (flights) {
+      for (const flight of flights) {
+        ingestFlight(flight);
+        tfmsMsgCount++;
+      }
+      return;
+    }
+    // Try flow data
+    const flows = parseFlowMessage(payload);
+    if (flows) {
+      for (const flow of flows) {
+        flowStore.upsert(flow);
+      }
     }
   } catch (err) {
     console.error('[TFMS] Parse error:', err.message);
@@ -197,6 +210,15 @@ app.get('/api/airlines', (req, res) => {
     .sort((a, b) => b.count - a.count);
 
   res.json(airlines);
+});
+
+// --- Flow restrictions API ---
+app.get('/api/flow', (req, res) => {
+  const airport = req.query.airport || '';
+  const restrictions = airport
+    ? flowStore.getByAirport(airport)
+    : flowStore.getActive();
+  res.json(restrictions);
 });
 
 // --- Flight detail API ---
@@ -465,6 +487,7 @@ function shutdown() {
   tfmsClient.disconnect();
   smesClient.disconnect();
   flightStore.stop();
+  flowStore.stop();
   server.close();
   process.exit(0);
 }
